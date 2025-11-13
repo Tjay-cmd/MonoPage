@@ -1789,17 +1789,19 @@ export default function CustomizeTemplatePage() {
     
     // Also make all buttons and links editable (for text editing)
     const buttonsAndLinks = doc.querySelectorAll('button, a');
-    buttonsAndLinks.forEach((el: HTMLElement, index) => {
+    buttonsAndLinks.forEach((el, index) => {
+      // Cast to HTMLElement to access HTML-specific properties
+      const htmlEl = el as HTMLElement;
       // Only if not already marked as editable
-      if (!el.getAttribute('data-editable')) {
-        el.setAttribute('data-editable', 'true');
-        el.setAttribute('data-element-id', `button-link-${index}`);
-        el.setAttribute('data-element-index', index.toString());
-        el.setAttribute('data-text-content', el.textContent?.trim() || '');
+      if (!htmlEl.getAttribute('data-editable')) {
+        htmlEl.setAttribute('data-editable', 'true');
+        htmlEl.setAttribute('data-element-id', `button-link-${index}`);
+        htmlEl.setAttribute('data-element-index', index.toString());
+        htmlEl.setAttribute('data-text-content', htmlEl.textContent?.trim() || '');
       }
       
       // Add specific event listener to handle Ctrl+Click editing
-      el.addEventListener('click', (e) => {
+      htmlEl.addEventListener('click', (e) => {
         if (e.ctrlKey || e.metaKey) {
           console.log('Ctrl+Click detected on button/link - opening editor');
           e.preventDefault();
@@ -1807,9 +1809,9 @@ export default function CustomizeTemplatePage() {
           e.stopImmediatePropagation();
           
           // Create a stable ID based on the button's content and position
-          const buttonText = el.textContent?.trim().replace(/\s+/g, '-').toLowerCase() || 'button';
-          const buttonClass = el.className?.trim().replace(/\s+/g, '-') || '';
-          const buttonId = el.id || '';
+          const buttonText = htmlEl.textContent?.trim().replace(/\s+/g, '-').toLowerCase() || 'button';
+          const buttonClass = htmlEl.className?.trim().replace(/\s+/g, '-') || '';
+          const buttonId = htmlEl.id || '';
           
           // Use a combination of ID, class, and text to create a stable identifier
           const stableIdentifier = buttonId || buttonClass || buttonText;
@@ -1821,10 +1823,10 @@ export default function CustomizeTemplatePage() {
           const buttonLinkElement = {
             id: stableId,
             type: 'text',
-            selector: el.tagName.toLowerCase(),
-            currentValue: el.textContent?.trim() || '',
-            label: `${el.tagName}: ${el.textContent?.substring(0, 30)}${el.textContent && el.textContent.length > 30 ? '...' : ''}`,
-            element: el,
+            selector: htmlEl.tagName.toLowerCase(),
+            currentValue: htmlEl.textContent?.trim() || '',
+            label: `${htmlEl.tagName}: ${htmlEl.textContent?.substring(0, 30)}${htmlEl.textContent && htmlEl.textContent.length > 30 ? '...' : ''}`,
+            element: htmlEl,
             index: 0
           };
           
