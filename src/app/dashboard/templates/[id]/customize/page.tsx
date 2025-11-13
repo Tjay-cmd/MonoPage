@@ -67,9 +67,19 @@ export default function CustomizeTemplatePage() {
   // Service Management
   const [serviceBlocks, setServiceBlocks] = useState<any>(null); // Detected service cards
   const [userServices, setUserServices] = useState<any[]>([]); // PayFast services
+  // Type definition for selected service
+  interface SelectedService {
+    element: HTMLElement;
+    name: string;
+    description: string;
+    price: string;
+    id?: string;
+    synced: boolean;
+  }
+
   const [servicesSynced, setServicesSynced] = useState(false); // Sync status
   const [showServiceManager, setShowServiceManager] = useState(false); // Service manager modal
-  const [selectedService, setSelectedService] = useState<any>(null); // Service being edited
+  const [selectedService, setSelectedService] = useState<SelectedService | null>(null); // Service being edited
   const [showServiceEditor, setShowServiceEditor] = useState(false); // Service editor modal
 
   useEffect(() => {
@@ -1665,7 +1675,7 @@ export default function CustomizeTemplatePage() {
             const isSynced = serviceCard.getAttribute('data-synced') === 'true';
             
             setSelectedService({
-              element: serviceCard,
+              element: serviceCard as HTMLElement,
               name: serviceName,
               description: serviceDesc,
               price: servicePrice,
@@ -3353,7 +3363,10 @@ export default function CustomizeTemplatePage() {
                   type="text"
                   value={selectedService.name}
                   onChange={(e) => {
-                    setSelectedService(prev => ({ ...prev, name: e.target.value }));
+                    setSelectedService((prev: SelectedService | null) => {
+                      if (!prev) return prev;
+                      return { ...prev, name: e.target.value };
+                    });
                     const titleElement = selectedService.element.querySelector('h3, .service-title, [class*="title"]');
                     if (titleElement) titleElement.textContent = e.target.value;
                   }}
@@ -3370,7 +3383,10 @@ export default function CustomizeTemplatePage() {
                 <textarea
                   value={selectedService.description}
                   onChange={(e) => {
-                    setSelectedService(prev => ({ ...prev, description: e.target.value }));
+                    setSelectedService((prev: SelectedService | null) => {
+                      if (!prev) return prev;
+                      return { ...prev, description: e.target.value };
+                    });
                     const descElement = selectedService.element.querySelector('p, .service-description, [class*="description"]');
                     if (descElement) descElement.textContent = e.target.value;
                   }}
@@ -3393,7 +3409,10 @@ export default function CustomizeTemplatePage() {
                   step="0.01"
                   value={selectedService.price}
                   onChange={(e) => {
-                    setSelectedService(prev => ({ ...prev, price: e.target.value }));
+                    setSelectedService((prev: SelectedService | null) => {
+                      if (!prev) return prev;
+                      return { ...prev, price: e.target.value };
+                    });
                     const priceElement = selectedService.element.querySelector('.price, [class*="price"], .cost');
                     if (priceElement) priceElement.textContent = `$${e.target.value}`;
                   }}
@@ -3415,11 +3434,14 @@ export default function CustomizeTemplatePage() {
                       const linkedService = userServices.find(s => s.id === serviceId);
                       
                       if (linkedService) {
-                        setSelectedService(prev => ({ 
-                          ...prev, 
-                          id: serviceId,
-                          synced: true
-                        }));
+                        setSelectedService((prev: SelectedService | null) => {
+                          if (!prev) return prev;
+                          return { 
+                            ...prev, 
+                            id: serviceId,
+                            synced: true
+                          };
+                        });
                         
                         selectedService.element.setAttribute('data-service-id', serviceId);
                         selectedService.element.setAttribute('data-synced', 'true');
