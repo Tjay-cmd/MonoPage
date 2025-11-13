@@ -158,8 +158,17 @@ export default function UserWebsitesPage() {
           
           // Sort manually by updatedAt
           websitesData.sort((a, b) => {
-            const aTime = a.updatedAt?.toDate?.() || new Date(a.updatedAt || 0);
-            const bTime = b.updatedAt?.toDate?.() || new Date(b.updatedAt || 0);
+            // Handle both Firestore Timestamp and string dates
+            const aUpdatedAt = (a as any).updatedAt;
+            const bUpdatedAt = (b as any).updatedAt;
+            
+            const aTime = (aUpdatedAt && typeof aUpdatedAt.toDate === 'function') 
+              ? aUpdatedAt.toDate() 
+              : new Date(aUpdatedAt || a.updatedAt || 0);
+            const bTime = (bUpdatedAt && typeof bUpdatedAt.toDate === 'function') 
+              ? bUpdatedAt.toDate() 
+              : new Date(bUpdatedAt || b.updatedAt || 0);
+            
             return bTime.getTime() - aTime.getTime();
           });
           
@@ -195,8 +204,17 @@ export default function UserWebsitesPage() {
             
             // Sort manually by updatedAt
             websitesData.sort((a, b) => {
-              const aTime = a.updatedAt?.toDate?.() || new Date(a.updatedAt || 0);
-              const bTime = b.updatedAt?.toDate?.() || new Date(b.updatedAt || 0);
+              // Handle both Firestore Timestamp and string dates
+              const aUpdatedAt = (a as any).updatedAt;
+              const bUpdatedAt = (b as any).updatedAt;
+              
+              const aTime = (aUpdatedAt && typeof aUpdatedAt.toDate === 'function') 
+                ? aUpdatedAt.toDate() 
+                : new Date(aUpdatedAt || a.updatedAt || 0);
+              const bTime = (bUpdatedAt && typeof bUpdatedAt.toDate === 'function') 
+                ? bUpdatedAt.toDate() 
+                : new Date(bUpdatedAt || b.updatedAt || 0);
+              
               return bTime.getTime() - aTime.getTime();
             });
             
