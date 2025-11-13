@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -36,7 +36,7 @@ interface EditableElement {
   defaultValue?: string;
 }
 
-export default function TemplatesPage() {
+function TemplatesPageContent() {
   const router = useRouter();
   const [templates, setTemplates] = useState<Template[]>([]);
   const [filteredTemplates, setFilteredTemplates] = useState<Template[]>([]);
@@ -417,5 +417,20 @@ function TemplateCard({
         </div>
       </div>
     </div>
+  );
+}
+
+export default function TemplatesPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading templates...</p>
+        </div>
+      </div>
+    }>
+      <TemplatesPageContent />
+    </Suspense>
   );
 }

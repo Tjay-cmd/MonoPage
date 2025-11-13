@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Save, Eye, Download } from 'lucide-react';
 import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
@@ -15,7 +15,7 @@ declare global {
 }
 
 
-export default function TemplateEditorPage() {
+function TemplateEditorContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const editorRef = useRef<HTMLDivElement>(null);
@@ -342,5 +342,20 @@ export default function TemplateEditorPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function TemplateEditorPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading editor...</p>
+        </div>
+      </div>
+    }>
+      <TemplateEditorContent />
+    </Suspense>
   );
 }
