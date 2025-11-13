@@ -279,65 +279,68 @@ export default function CustomizeTemplatePage() {
             if (element) {
               console.log('Found element in live iframe:', element.tagName);
               
+              // Cast to HTMLElement to access style property
+              const htmlElement = element as HTMLElement;
+              
               if (property === 'text' || !property) {
-                element.textContent = value;
+                htmlElement.textContent = value;
               } else if (property === 'color') {
-                element.style.color = value;
+                htmlElement.style.color = value;
               } else if (property === 'bg' || property === 'bg-color') {
-                element.style.setProperty('background-color', value, 'important');
-                element.style.setProperty('--base-color', value, 'important');
-                console.log('Applied bg-color:', value, 'to element:', element.tagName);
+                htmlElement.style.setProperty('background-color', value, 'important');
+                htmlElement.style.setProperty('--base-color', value, 'important');
+                console.log('Applied bg-color:', value, 'to element:', htmlElement.tagName);
               } else if (property === 'hover' || property === 'hover-color') {
-                element.style.setProperty('--hover-color', value, 'important');
-                console.log('Applied hover-color:', value, 'to element:', element.tagName);
+                htmlElement.style.setProperty('--hover-color', value, 'important');
+                console.log('Applied hover-color:', value, 'to element:', htmlElement.tagName);
               } else if (property === 'link') {
-                element.setAttribute('data-href', value);
+                htmlElement.setAttribute('data-href', value);
               } else if (property === 'background' || property === 'background-color') {
-                element.style.backgroundColor = value;
+                htmlElement.style.backgroundColor = value;
               } else if (property === 'background-image' || property === 'backgroundImage') {
-                element.style.backgroundImage = value;
+                htmlElement.style.backgroundImage = value;
               } else if (property === 'color') {
                 const hexValue = rgbToHex(value);
-                element.style.color = hexValue;
+                htmlElement.style.color = hexValue;
               } else if (property === 'font-size') {
-                element.style.fontSize = value + 'px';
+                htmlElement.style.fontSize = value + 'px';
               } else if (property === 'font-weight') {
-                element.style.fontWeight = value;
+                htmlElement.style.fontWeight = value;
               } else if (property === 'font-style') {
-                element.style.fontStyle = value;
+                htmlElement.style.fontStyle = value;
               } else if (property === 'text-decoration') {
-                element.style.textDecoration = value;
+                htmlElement.style.textDecoration = value;
               } else if (index === '0' && !property) {
                 // Handle text content (text-6-0)
-                element.textContent = value;
+                htmlElement.textContent = value;
               } else if (property === 'gradient' && index === 'start') {
                 // Handle gradient start color
                 const endColor = committedValues[`${elementId}-gradient-end`];
                 if (endColor) {
-                  element.style.background = `linear-gradient(135deg, ${value}, ${endColor})`;
+                  htmlElement.style.background = `linear-gradient(135deg, ${value}, ${endColor})`;
                 }
               } else if (property === 'gradient' && index === 'end') {
                 // Handle gradient end color
                 const startColor = committedValues[`${elementId}-gradient-start`];
                 if (startColor) {
-                  element.style.background = `linear-gradient(135deg, ${startColor}, ${value})`;
+                  htmlElement.style.background = `linear-gradient(135deg, ${startColor}, ${value})`;
                 }
               } else if (property === 'bgType' && value === 'gradient') {
                 // Apply gradient if both colors are available
                 const startColor = committedValues[`${elementId}-gradient-start`];
                 const endColor = committedValues[`${elementId}-gradient-end`];
                 if (startColor && endColor) {
-                  element.style.background = `linear-gradient(135deg, ${startColor}, ${endColor})`;
+                  htmlElement.style.background = `linear-gradient(135deg, ${startColor}, ${endColor})`;
                 }
               } else if (property === 'bgType' && value === 'solid') {
                 // Apply solid color
                 const solidColor = committedValues[`${elementId}-0`];
                 if (solidColor) {
-                  element.style.background = solidColor;
+                  htmlElement.style.background = solidColor;
                 }
               } else if (index === '0' && !property) {
                 // Handle solid background color (bg-ctrl-home-0)
-                element.style.background = value;
+                htmlElement.style.background = value;
               }
             }
           });
@@ -1327,68 +1330,71 @@ export default function CustomizeTemplatePage() {
         }
         
         if (element) {
-          console.log('✅ Found element:', element.tagName, element.textContent?.substring(0, 30));
+          // Cast to HTMLElement to access style property
+          const htmlElement = element as HTMLElement;
+          
+          console.log('✅ Found element:', htmlElement.tagName, htmlElement.textContent?.substring(0, 30));
           
           // Special handling for background elements with no property (bg-ctrl-home-0)
           if (index && !property && elementId.startsWith('bg-ctrl-')) {
             // This is a background solid color, not text content
-            element.style.background = value;
-            console.log('✅ Applied solid background:', value, 'to', element.tagName);
+            htmlElement.style.background = value;
+            console.log('✅ Applied solid background:', value, 'to', htmlElement.tagName);
           } else if (property === 'text' || (!property && elementId.startsWith('text-'))) {
-            element.textContent = value;
+            htmlElement.textContent = value;
           } else if (property === 'color') {
-            element.style.color = value;
+            htmlElement.style.color = value;
           } else if (property === 'bg' || property === 'bg-color') {
-            element.style.setProperty('background-color', value, 'important');
-            element.style.setProperty('--base-color', value, 'important');
-            console.log('✅ Applied bg-color:', value, 'to', element.tagName, element.textContent?.substring(0, 30));
+            htmlElement.style.setProperty('background-color', value, 'important');
+            htmlElement.style.setProperty('--base-color', value, 'important');
+            console.log('✅ Applied bg-color:', value, 'to', htmlElement.tagName, htmlElement.textContent?.substring(0, 30));
           } else if (property === 'hover' || property === 'hover-color') {
-            element.style.setProperty('--hover-color', value, 'important');
-            console.log('✅ Applied hover-color:', value, 'to', element.tagName, element.textContent?.substring(0, 30));
+            htmlElement.style.setProperty('--hover-color', value, 'important');
+            console.log('✅ Applied hover-color:', value, 'to', htmlElement.tagName, htmlElement.textContent?.substring(0, 30));
           } else if (property === 'link') {
-            element.setAttribute('data-href', value);
+            htmlElement.setAttribute('data-href', value);
           } else if (property === 'background' || property === 'background-color') {
-            element.style.backgroundColor = value;
+            htmlElement.style.backgroundColor = value;
           } else if (property === 'background-image' || property === 'backgroundImage') {
-            element.style.backgroundImage = value;
+            htmlElement.style.backgroundImage = value;
           } else if (property === 'color') {
             const hexValue = rgbToHex(value);
-            element.style.color = hexValue;
+            htmlElement.style.color = hexValue;
           } else if (property === 'font-size') {
-            element.style.fontSize = value + 'px';
+            htmlElement.style.fontSize = value + 'px';
           } else if (property === 'font-weight') {
-            element.style.fontWeight = value;
+            htmlElement.style.fontWeight = value;
           } else if (property === 'font-style') {
-            element.style.fontStyle = value;
+            htmlElement.style.fontStyle = value;
           } else if (property === 'text-decoration') {
-            element.style.textDecoration = value;
+            htmlElement.style.textDecoration = value;
           } else if (index === '0' && !property) {
             // Handle text content (text-6-0)
-            element.textContent = value;
+            htmlElement.textContent = value;
           } else if (property === 'gradient' && index === 'start') {
             // Handle gradient start color
             const endColor = committedValues[`${elementId}-gradient-end`];
             if (endColor) {
-              element.style.background = `linear-gradient(135deg, ${value}, ${endColor})`;
+              htmlElement.style.background = `linear-gradient(135deg, ${value}, ${endColor})`;
             }
           } else if (property === 'gradient' && index === 'end') {
             // Handle gradient end color
             const startColor = committedValues[`${elementId}-gradient-start`];
             if (startColor) {
-              element.style.background = `linear-gradient(135deg, ${startColor}, ${value})`;
+              htmlElement.style.background = `linear-gradient(135deg, ${startColor}, ${value})`;
             }
           } else if (property === 'bgType' && value === 'gradient') {
             // Apply gradient if both colors are available
             const startColor = committedValues[`${elementId}-gradient-start`];
             const endColor = committedValues[`${elementId}-gradient-end`];
             if (startColor && endColor) {
-              element.style.background = `linear-gradient(135deg, ${startColor}, ${endColor})`;
+              htmlElement.style.background = `linear-gradient(135deg, ${startColor}, ${endColor})`;
             }
           } else if (property === 'bgType' && value === 'solid') {
             // Apply solid color
             const solidColor = committedValues[`${elementId}-0`];
             if (solidColor) {
-              element.style.background = solidColor;
+              htmlElement.style.background = solidColor;
             }
           }
           
