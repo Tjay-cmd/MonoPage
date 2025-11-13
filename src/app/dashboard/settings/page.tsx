@@ -62,6 +62,7 @@ export default function SettingsPage() {
           const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
           if (userDoc.exists()) {
             const userData = { id: firebaseUser.uid, ...userDoc.data() } as User;
+            const rawUserData = userDoc.data(); // Access raw data for optional fields
             setUser(userData);
             
             // Load profile data
@@ -69,7 +70,7 @@ export default function SettingsPage() {
               email: firebaseUser.email || '',
               businessName: userData.businessName || '',
               businessType: userData.businessType || '',
-              profileImageUrl: userData.profileImageUrl || ''
+              profileImageUrl: (rawUserData?.profileImageUrl as string) || ''
             });
             
             // Load merchant settings
