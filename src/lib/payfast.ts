@@ -126,7 +126,7 @@ function testSignatureCalculation(): void {
 
   // EXACT replica of PHP code: foreach( $data as $key => $val )
   let pfOutput = '';
-  Object.keys(testData).forEach(key => {
+  (Object.keys(testData) as Array<keyof typeof testData>).forEach(key => {
     const val = testData[key];
     if (val !== '') {
       pfOutput += key + '=' + encodeURIComponent(val.toString().trim()) + '&';
