@@ -441,10 +441,10 @@ export default function CustomizeTemplatePage() {
         if (!querySnapshot.empty) {
           // Sort by updatedAt manually (most recent first)
           const websites = querySnapshot.docs
-            .map(doc => ({ id: doc.id, ...doc.data() }))
-            .sort((a: any, b: any) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+            .map(doc => ({ id: doc.id, ...doc.data() } as any))
+            .sort((a: any, b: any) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime());
           
-          const latestWebsite = websites[0];
+          const latestWebsite = websites[0] as any;
           console.log('✅ Found latest website:', latestWebsite.id);
           console.log('📊 customizations count:', Object.keys(latestWebsite.customizations || {}).length);
           console.log('📊 savedContent length:', latestWebsite.savedContent?.length || 0);
