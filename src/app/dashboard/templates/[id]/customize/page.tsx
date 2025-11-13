@@ -138,12 +138,12 @@ export default function CustomizeTemplatePage() {
               // Check if last part is an index (number), a property (string), or neither
               if (!isNaN(parseInt(lastPart)) && lastPart === parseInt(lastPart).toString()) {
                 // It's a pure number: bg-ctrl-home-0 → elementId='bg-ctrl-home', index='0', property=undefined
-                index = bgParts.pop();
+                index = bgParts.pop() || '';
                 elementId = bgParts.join('-');
                 property = undefined;
               } else if (lastPart === 'bgType' || lastPart === 'start' || lastPart === 'end') {
                 // It's part of a property: bg-ctrl-home-gradient-start
-                index = bgParts.pop(); // 'start'
+                index = bgParts.pop() || ''; // 'start'
                 property = bgParts.pop(); // 'gradient'
                 elementId = bgParts.join('-'); // 'bg-ctrl-home'
               } else {
@@ -162,30 +162,30 @@ export default function CustomizeTemplatePage() {
               if (isNaN(parseInt(lastPart))) {
                 // It's a property: text-93-0-color → elementId='text-93', index='0', property='color'
                 property = textParts.pop(); // 'color'
-                index = textParts.pop(); // '0'
+                index = textParts.pop() || ''; // '0'
                 elementId = textParts.join('-'); // 'text-93'
               } else {
                 // It's just an index: text-93-1 → elementId='text-93', index='1', property=undefined
-                index = textParts.pop(); // '1'
+                index = textParts.pop() || ''; // '1'
                 elementId = textParts.join('-'); // 'text-93'
                 property = undefined;
               }
             } else if (key.startsWith('img-')) {
               // For img-7-0, we have: elementId-index (similar to text)
               const imgParts = key.split('-');
-              index = imgParts.pop(); // '0'
+              index = imgParts.pop() || ''; // '0'
               elementId = imgParts.join('-'); // 'img-7'
               property = undefined;
             } else if (key.startsWith('button-link-ctrl-')) {
               // For button-link-ctrl-btn-primary-0-bg-color, we have: elementId-property-subproperty
               // E.g., 'button-link-ctrl-btn-primary-0-bg-color' → elementId='button-link-ctrl-btn-primary-0', property='bg', index='color'
               parts = key.split('-');
-              index = parts.pop(); // 'color'
+              index = parts.pop() || ''; // 'color'
               property = parts.pop(); // 'bg'
               elementId = parts.join('-'); // 'button-link-ctrl-btn-primary-0'
             } else {
               // Default parsing
-              index = parts.pop();
+              index = parts.pop() || '';
               property = parts.pop();
               elementId = parts.join('-');
             }
@@ -1165,12 +1165,12 @@ export default function CustomizeTemplatePage() {
           // Check if last part is an index (number), a property (string), or neither
           if (!isNaN(parseInt(lastPart)) && lastPart === parseInt(lastPart).toString()) {
             // It's a pure number: bg-ctrl-home-0 → elementId='bg-ctrl-home', index='0', property=undefined
-            index = bgParts.pop();
+            index = bgParts.pop() || '';
             elementId = bgParts.join('-');
             property = undefined;
           } else if (lastPart === 'bgType' || lastPart === 'start' || lastPart === 'end') {
             // It's part of a property: bg-ctrl-home-gradient-start
-            index = bgParts.pop(); // 'start'
+            index = bgParts.pop() || ''; // 'start'
             property = bgParts.pop(); // 'gradient'
             elementId = bgParts.join('-'); // 'bg-ctrl-home'
           } else {
@@ -1189,30 +1189,30 @@ export default function CustomizeTemplatePage() {
           if (isNaN(parseInt(lastPart))) {
             // It's a property: text-93-0-color → elementId='text-93', index='0', property='color'
             property = textParts.pop(); // 'color'
-            index = textParts.pop(); // '0'
+            index = textParts.pop() || ''; // '0'
             elementId = textParts.join('-'); // 'text-93'
           } else {
             // It's just an index: text-93-1 → elementId='text-93', index='1', property=undefined
-            index = textParts.pop(); // '1'
+            index = textParts.pop() || ''; // '1'
             elementId = textParts.join('-'); // 'text-93'
             property = undefined;
           }
         } else if (key.startsWith('img-')) {
           // For img-7-0, we have: elementId-index (similar to text)
           const imgParts = key.split('-');
-          index = imgParts.pop(); // '0'
+          index = imgParts.pop() || ''; // '0'
           elementId = imgParts.join('-'); // 'img-7'
           property = undefined;
         } else if (key.startsWith('button-link-ctrl-')) {
           // For button-link-ctrl-btn-primary-0-bg-color, we have: elementId-property-subproperty
           // E.g., 'button-link-ctrl-btn-primary-0-bg-color' → elementId='button-link-ctrl-btn-primary-0', property='bg', index='color'
           parts = key.split('-');
-          index = parts.pop(); // 'color'
+          index = parts.pop() || ''; // 'color'
           property = parts.pop(); // 'bg'
           elementId = parts.join('-'); // 'button-link-ctrl-btn-primary-0'
         } else {
           // Default parsing
-          index = parts.pop();
+          index = parts.pop() || '';
           property = parts.pop();
           elementId = parts.join('-');
         }
