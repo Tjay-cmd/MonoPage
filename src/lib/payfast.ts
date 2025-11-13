@@ -231,7 +231,9 @@ export function verifySignature(data: Record<string, any>, receivedSignature: st
 export function parsePayFastWebhook(formData: FormData) {
   const data: Record<string, any> = {};
 
-  for (const [key, value] of formData.entries()) {
+  // Iterate over FormData entries using Array.from to handle iterator
+  const entries = Array.from(formData.entries());
+  for (const [key, value] of entries) {
     data[key] = value.toString();
   }
 
