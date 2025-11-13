@@ -55,7 +55,14 @@ export function generatePayFastData(
     throw new Error('PayFast data generation should only be done server-side');
   }
 
-  const subscription = SUBSCRIPTION_PRICES[tier];
+  // 'free' tier doesn't require payment
+  if (tier === 'free') {
+    throw new Error('Free tier does not require payment processing');
+  }
+
+  // Type narrow to exclude 'free' for accessing SUBSCRIPTION_PRICES
+  type PaidTier = Exclude<SubscriptionTier, 'free'>;
+  const subscription = SUBSCRIPTION_PRICES[tier as PaidTier];
   if (!subscription) {
     throw new Error(`Invalid subscription tier: ${tier}`);
   }
