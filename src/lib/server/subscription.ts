@@ -146,7 +146,8 @@ export async function isAdminUserServer(userId: string): Promise<boolean> {
     const data = userDoc.data() as Partial<UserSubscription> & {
       tier?: SubscriptionTier;
     };
-    const tier = data?.tier || data?.subscriptionTier;
+    // Access subscriptionTier from raw data for backwards compatibility
+    const tier = data?.tier || (data as any)?.subscriptionTier;
     return typeof tier === 'string' && tier.toLowerCase().trim() === 'admin';
   } catch (error) {
     if (permissionDenied(error)) {
