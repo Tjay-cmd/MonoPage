@@ -103,7 +103,7 @@ export class ProgressionService {
 
       switch (currentTier) {
         case 'starter':
-          nextTier = 'professional';
+          nextTier = 'pro';
           const profReq = tierRequirements.professional;
           const transactionProgress = Math.min((totalTransactions / profReq.minTransactions) * 100, 100);
           const revenueProgress = Math.min((totalRevenue / profReq.minRevenue) * 100, 100);
@@ -117,7 +117,7 @@ export class ProgressionService {
           canUpgrade = totalTransactions >= profReq.minTransactions && totalRevenue >= profReq.minRevenue;
           break;
 
-        case 'professional':
+        case 'pro':
           nextTier = 'business';
           const busReq = tierRequirements.business;
           const busTransactionProgress = Math.min((totalTransactions / busReq.minTransactions) * 100, 100);
@@ -182,7 +182,15 @@ export class ProgressionService {
 
   // Get user's current tier features
   getTierFeatures(tier: UserTier): string[] {
-    return tierRequirements[tier].features;
+    // Map UserTier to tierRequirements keys
+    if (tier === 'pro') {
+      return tierRequirements.professional.features;
+    }
+    if (tier === 'starter' || tier === 'business') {
+      return tierRequirements[tier].features;
+    }
+    // For other tiers (free, premium, admin), return empty array or default
+    return [];
   }
 
   // Check if user can perform a specific action based on their tier
