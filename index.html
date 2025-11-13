@@ -1,0 +1,1193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Professional barber shop services with modern cuts and classic style">
+    <title>Elite Barbershop - Premium Haircuts & Grooming</title>
+    
+    <style>
+        /* =====================================================
+           BARBER SHOP TEMPLATE - FULLY EDITABLE IN GRAPESJS
+           ===================================================== */
+        
+        /* CSS Reset & Base Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            /* Barber Color Palette */
+            --primary-color: #1a1a1a;
+            --primary-dark: #000000;
+            --accent-color: #d4af37;
+            --accent-light: #f4e4bc;
+            --text-dark: #2d2d2d;
+            --text-light: #666666;
+            --bg-light: #f8f8f8;
+            --bg-dark: #1a1a1a;
+            --white: #ffffff;
+            
+            /* Spacing Variables */
+            --section-padding: 6rem 2rem;
+            --container-width: 1200px;
+            
+            /* Shadow Variables */
+            --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
+            --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.15);
+            --shadow-lg: 0 10px 20px rgba(0, 0, 0, 0.2);
+            --shadow-xl: 0 20px 40px rgba(0, 0, 0, 0.25);
+            
+            /* Transition Variables */
+            --transition-fast: 0.2s ease;
+            --transition-normal: 0.3s ease;
+            --transition-slow: 0.5s ease;
+        }
+        
+        html {
+            scroll-behavior: smooth;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--text-dark);
+            background: var(--white);
+            overflow-x: hidden;
+        }
+        
+        /* Container */
+        .container {
+            max-width: var(--container-width);
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+        
+        /* Header */
+        header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(26, 26, 26, 0.98);
+            backdrop-filter: blur(10px);
+            box-shadow: var(--shadow-md);
+            z-index: 1000;
+            transition: var(--transition-normal);
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.25rem 2rem;
+            max-width: var(--container-width);
+            margin: 0 auto;
+        }
+        
+        .logo {
+            height: 55px;
+            transition: var(--transition-normal);
+            background: transparent;
+            border: none;
+        }
+        
+        .logo[src=""],
+        .logo:not([src]) {
+            background: #f0f0f0;
+            border: 2px dashed #ccc;
+            min-width: 120px;
+            min-height: 55px;
+        }
+        
+        .logo:hover {
+            transform: scale(1.05);
+        }
+        
+        nav {
+            display: flex;
+            gap: 2.5rem;
+            align-items: center;
+        }
+        
+        nav a {
+            color: var(--white);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            position: relative;
+            transition: var(--transition-fast);
+        }
+        
+        nav a::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--accent-color);
+            transition: var(--transition-normal);
+        }
+        
+        nav a:hover {
+            color: var(--accent-color);
+        }
+        
+        nav a:hover::after {
+            width: 100%;
+        }
+        
+        /* Hero Section */
+        .hero {
+            position: relative;
+            background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-color) 100%);
+            color: var(--white);
+            padding: 10rem 2rem 6rem;
+            margin-top: 0;
+            overflow: hidden;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('') center/cover no-repeat;
+            opacity: 0.15;
+            z-index: 0;
+        }
+        
+        .hero-image-placeholder {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 1.2rem;
+            text-align: center;
+            z-index: 0;
+            pointer-events: none;
+        }
+        
+        .hero-content {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+            max-width: 900px;
+            animation: fadeInUp 1s ease;
+        }
+        
+        .hero h1 {
+            font-size: 4.5rem;
+            font-weight: 900;
+            line-height: 1.1;
+            margin-bottom: 1.5rem;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.3);
+        }
+        
+        .hero h1 span {
+            color: var(--accent-color);
+        }
+        
+        .hero p {
+            font-size: 1.5rem;
+            margin-bottom: 3rem;
+            opacity: 0.95;
+            font-weight: 300;
+            line-height: 1.8;
+        }
+        
+        .hero-buttons {
+            display: flex;
+            gap: 1.5rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        /* Buttons */
+        .cta-button,
+        .btn-primary,
+        .btn-secondary {
+            display: inline-block;
+            padding: 1rem 3rem;
+            background: var(--accent-color);
+            color: var(--primary-dark);
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 1.1rem;
+            border-radius: 0;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            transition: var(--transition-normal);
+            cursor: pointer;
+            text-align: center;
+            border: 2px solid var(--accent-color);
+        }
+        
+        .btn-secondary {
+            background: transparent;
+            color: var(--white);
+            border: 2px solid var(--white);
+        }
+        
+        .cta-button:hover,
+        .btn-primary:hover {
+            background: transparent;
+            color: var(--accent-color);
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(212, 175, 55, 0.3);
+        }
+        
+        .btn-secondary:hover {
+            background: var(--white);
+            color: var(--primary-dark);
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(255, 255, 255, 0.2);
+        }
+        
+        /* Sections */
+        section {
+            padding: var(--section-padding);
+        }
+        
+        .section-title {
+            font-size: 3rem;
+            font-weight: 800;
+            text-align: center;
+            margin-bottom: 1rem;
+            color: var(--text-dark);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            position: relative;
+            display: inline-block;
+        }
+        
+        .section-title::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 4px;
+            background: var(--accent-color);
+        }
+        
+        .section-header {
+            text-align: center;
+            margin-bottom: 4rem;
+        }
+        
+        .section-subtitle {
+            text-align: center;
+            font-size: 1.2rem;
+            color: var(--text-light);
+            margin-top: 2rem;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        /* Services Section */
+        .services {
+            background: var(--bg-light);
+        }
+        
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 2.5rem;
+            margin-top: 4rem;
+        }
+        
+        .service-card {
+            background: var(--white);
+            padding: 3rem 2rem;
+            border-radius: 0;
+            box-shadow: var(--shadow-md);
+            transition: var(--transition-normal);
+            position: relative;
+            text-align: center;
+        }
+        
+        .service-card:hover {
+            transform: translateY(-10px);
+            box-shadow: var(--shadow-xl);
+        }
+        
+        .service-icon {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            transition: var(--transition-normal);
+            background: transparent;
+            border: none;
+            position: relative;
+        }
+        
+        .service-icon[src=""],
+        .service-icon:not([src]) {
+            background: #f0f0f0;
+            border: 2px dashed #ccc;
+        }
+        
+        .gallery-item img[src]:not([src=""]) {
+            opacity: 1;
+        }
+        
+
+        
+
+        
+        .service-image-placeholder {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #999;
+            font-size: 0.9rem;
+            text-align: center;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+        
+        .service-card:hover .service-icon {
+            transform: scale(1.05);
+        }
+        
+        .service-card h3 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: var(--text-dark);
+        }
+        
+        .service-card p {
+            font-size: 1rem;
+            color: var(--text-light);
+            line-height: 1.8;
+            margin-bottom: 1.5rem;
+        }
+        
+        .service-price {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--accent-color);
+            margin-bottom: 0.5rem;
+        }
+        
+        /* Gallery Section */
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1rem;
+            margin-top: 3rem;
+        }
+        
+        .gallery-item {
+            position: relative;
+            overflow: hidden;
+            aspect-ratio: 1;
+            cursor: pointer;
+            background: transparent;
+            border: none;
+        }
+        
+        .gallery-item:has(img[src=""]),
+        .gallery-item:has(img:not([src])) {
+            background: #f0f0f0;
+            border: 2px dashed #ccc;
+        }
+        
+        .gallery-image-placeholder {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #999;
+            font-size: 0.9rem;
+            text-align: center;
+            pointer-events: none;
+            white-space: nowrap;
+            z-index: 2;
+        }
+        
+        .gallery-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: var(--transition-slow);
+            position: relative;
+            z-index: 1;
+        }
+        
+        .gallery-item img[src=""] {
+            opacity: 0;
+        }
+        
+        .gallery-item img[src]:not([src=""]) ~ .gallery-image-placeholder,
+        .service-icon[src]:not([src=""]) ~ .service-image-placeholder {
+            display: none;
+        }
+        
+        .logo[src]:not([src=""]):not([src=""]) ~ .logo-placeholder,
+        .logo[src]:not([src=""]):not([src=""]) + .logo-placeholder {
+            display: none;
+        }
+        
+        /* Hide placeholder when logo has valid src */
+        img.logo[src]:not([src=""]) ~ .logo-placeholder {
+            display: none;
+        }
+        
+        /* Alternative: hide placeholder when parent has image with src */
+        div:has(> img.logo[src]:not([src=""])) .logo-placeholder {
+            display: none;
+        }
+        
+        .hero::before[style*="background-image"] ~ .hero-image-placeholder {
+            display: none;
+        }
+        
+        .gallery-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(26, 26, 26, 0.7);
+            opacity: 0;
+            transition: var(--transition-normal);
+            z-index: 1;
+        }
+        
+        .gallery-item:hover img {
+            transform: scale(1.1);
+        }
+        
+        .gallery-item:hover::before {
+            opacity: 1;
+        }
+        
+        /* Testimonials Section */
+        .testimonials {
+            background: var(--bg-dark);
+            color: var(--white);
+        }
+        
+        .testimonials .section-title {
+            color: var(--white);
+        }
+        
+        .testimonials .section-subtitle {
+            color: rgba(255, 255, 255, 0.8);
+        }
+        
+        .testimonials-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2.5rem;
+            margin-top: 4rem;
+        }
+        
+        .testimonial-card {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 2.5rem;
+            border-left: 4px solid var(--accent-color);
+            transition: var(--transition-normal);
+        }
+        
+        .testimonial-card:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateX(10px);
+        }
+        
+        .testimonial-stars {
+            font-size: 1.5rem;
+            color: var(--accent-color);
+            margin-bottom: 1rem;
+        }
+        
+        .testimonial-text {
+            font-size: 1.1rem;
+            font-style: italic;
+            margin-bottom: 1.5rem;
+            line-height: 1.8;
+            color: rgba(255, 255, 255, 0.9);
+        }
+        
+        .testimonial-author {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--accent-color);
+        }
+        
+        /* Pricing/Payment Section */
+        .pricing {
+            background: var(--bg-light);
+        }
+        
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2.5rem;
+            margin-top: 4rem;
+        }
+        
+        .pricing-card {
+            background: var(--white);
+            padding: 3rem 2rem;
+            box-shadow: var(--shadow-md);
+            transition: var(--transition-normal);
+            text-align: center;
+            border: 2px solid transparent;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .pricing-card:hover {
+            transform: translateY(-10px);
+            box-shadow: var(--shadow-xl);
+            border-color: var(--accent-color);
+        }
+        
+        .pricing-card.featured {
+            border-color: var(--accent-color);
+            border-width: 3px;
+        }
+        
+        .pricing-card.featured::before {
+            content: 'POPULAR';
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--accent-color);
+            color: var(--primary-dark);
+            padding: 0.5rem 2rem;
+            font-weight: 700;
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+        }
+        
+        .pricing-name {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+        }
+        
+        .pricing-amount {
+            font-size: 3.5rem;
+            font-weight: 900;
+            color: var(--accent-color);
+            margin-bottom: 0.5rem;
+        }
+        
+        .pricing-features {
+            list-style: none;
+            margin: 2rem 0;
+            text-align: left;
+            flex: 1;
+            padding: 0;
+        }
+        
+        .pricing-features li {
+            padding: 0.75rem 0;
+            font-size: 1.05rem;
+            color: var(--text-light);
+            border-bottom: 1px solid var(--bg-light);
+            display: flex;
+            align-items: center;
+        }
+        
+        .pricing-features li .checkmark {
+            color: var(--accent-color);
+            font-weight: 700;
+            margin-right: 10px;
+            font-size: 1.2rem;
+            display: inline-block;
+            min-width: 20px;
+        }
+        
+        .pricing-features li .feature-text {
+            flex: 1;
+        }
+        
+        /* Payment Button */
+        .payment-button {
+            display: inline-block;
+            padding: 1rem 2.5rem;
+            background: var(--primary-dark);
+            color: var(--white);
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 1.1rem;
+            border-radius: 0;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            transition: var(--transition-normal);
+            cursor: pointer;
+            text-align: center;
+            border: 2px solid var(--primary-dark);
+            width: 100%;
+        }
+        
+        .payment-button:hover {
+            background: transparent;
+            color: var(--primary-dark);
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+        
+        /* Contact Section */
+        .contact-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            margin-top: 3rem;
+        }
+        
+        .contact-info h3 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 2rem;
+            color: var(--text-dark);
+        }
+        
+        .contact-item {
+            display: flex;
+            align-items: start;
+            margin-bottom: 2rem;
+        }
+        
+        .contact-icon {
+            font-size: 2rem;
+            margin-right: 1.5rem;
+            color: var(--accent-color);
+        }
+        
+        .contact-details h4 {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: var(--text-dark);
+        }
+        
+        .contact-details p {
+            font-size: 1rem;
+            color: var(--text-light);
+            line-height: 1.8;
+        }
+        
+        .contact-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        
+        .contact-form input,
+        .contact-form textarea {
+            padding: 1rem;
+            font-size: 1rem;
+            border: 2px solid var(--bg-light);
+            background: var(--white);
+            font-family: inherit;
+            transition: var(--transition-fast);
+        }
+        
+        .contact-form input:focus,
+        .contact-form textarea:focus {
+            outline: none;
+            border-color: var(--accent-color);
+        }
+        
+        .contact-form textarea {
+            min-height: 150px;
+            resize: vertical;
+        }
+        
+        .submit-btn {
+            padding: 1rem 3rem;
+            background: var(--primary-dark);
+            color: var(--white);
+            border: 2px solid var(--primary-dark);
+            font-weight: 700;
+            font-size: 1.1rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            cursor: pointer;
+            transition: var(--transition-normal);
+        }
+        
+        .submit-btn:hover {
+            background: transparent;
+            color: var(--primary-dark);
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+        
+        /* Footer */
+        footer {
+            background: var(--bg-dark);
+            color: var(--white);
+            padding: 3rem 2rem;
+            text-align: center;
+        }
+        
+        .footer-content {
+            max-width: var(--container-width);
+            margin: 0 auto;
+        }
+        
+        .social-links {
+            display: flex;
+            gap: 1.5rem;
+            justify-content: center;
+            margin-bottom: 2rem;
+        }
+        
+        .social-links a {
+            font-size: 1.5rem;
+            color: var(--white);
+            text-decoration: none;
+            transition: var(--transition-fast);
+        }
+        
+        .social-links a:hover {
+            color: var(--accent-color);
+            transform: translateY(-5px);
+        }
+        
+        .footer-text {
+            opacity: 0.7;
+            font-size: 0.95rem;
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 968px) {
+            :root {
+                --section-padding: 4rem 1.5rem;
+            }
+            
+            .hero h1 {
+                font-size: 3rem;
+            }
+            
+            .hero p {
+                font-size: 1.2rem;
+            }
+            
+            .services-grid,
+            .testimonials-grid,
+            .pricing-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .gallery-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .contact-grid {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+            }
+            
+            nav {
+                gap: 1.5rem;
+            }
+            
+            nav a {
+                font-size: 0.9rem;
+            }
+        }
+        
+        @media (max-width: 640px) {
+            .hero {
+                padding: 8rem 1.5rem 4rem;
+            }
+            
+            .hero h1 {
+                font-size: 2.2rem;
+                letter-spacing: 2px;
+            }
+            
+            .hero p {
+                font-size: 1.1rem;
+            }
+            
+            .hero-buttons {
+                flex-direction: column;
+            }
+            
+            .hero-buttons a {
+                width: 100%;
+                text-align: center;
+            }
+            
+            .section-title {
+                font-size: 2rem;
+            }
+            
+            .gallery-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            nav {
+                gap: 1rem;
+                font-size: 0.85rem;
+            }
+            
+            .header-content {
+                flex-wrap: wrap;
+            }
+        }
+        
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .fade-in {
+            animation: fadeInUp 0.8s ease;
+        }
+    </style>
+</head>
+<body>
+    <!-- HEADER -->
+    <header id="header">
+        <div class="header-content">
+            <div style="position: relative; display: inline-block;">
+                <img src="" alt="Add your logo here - Double click to upload" class="logo" style="display: block;">
+                <div class="logo-placeholder" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #999; font-size: 0.85rem; text-align: center; pointer-events: none; white-space: nowrap;">Double click<br>to upload logo</div>
+            </div>
+            <nav>
+                <a href="#home">Home</a>
+                <a href="#services">Services</a>
+                <a href="#gallery">Gallery</a>
+                <a href="#pricing">Pricing</a>
+                <a href="#testimonials">Reviews</a>
+                <a href="#contact">Contact</a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- HERO SECTION -->
+    <section class="hero" id="home">
+        <div class="hero-image-placeholder">Background Image: Double click hero section to add background image</div>
+        <div class="hero-content">
+            <h1>Elite <span>Barbershop</span></h1>
+            <p>Where Style Meets Precision. Experience the Perfect Cut, Every Time.</p>
+            <div class="hero-buttons">
+                <a href="#pricing" class="cta-button">Book Now</a>
+                <a href="#services" class="btn-secondary">Our Services</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- SERVICES SECTION -->
+    <section class="services" id="services">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Our Services</h2>
+                <p class="section-subtitle">Professional grooming services tailored to your style</p>
+            </div>
+            <div class="services-grid">
+                <div class="service-card">
+                    <div style="position: relative;">
+                        <img src="" alt="Add your image here - Double click to upload" class="service-icon">
+                        <div class="service-image-placeholder">Double click<br>to upload image</div>
+                    </div>
+                    <h3>Classic Cut</h3>
+                    <p>Traditional haircuts with modern precision</p>
+                    <div class="service-price">$25</div>
+                </div>
+                <div class="service-card">
+                    <div style="position: relative;">
+                        <img src="" alt="Add your image here - Double click to upload" class="service-icon">
+                        <div class="service-image-placeholder">Double click<br>to upload image</div>
+                    </div>
+                    <h3>Fade Master</h3>
+                    <p>Professional fade cuts and tapers</p>
+                    <div class="service-price">$30</div>
+                </div>
+                <div class="service-card">
+                    <div style="position: relative;">
+                        <img src="" alt="Add your image here - Double click to upload" class="service-icon">
+                        <div class="service-image-placeholder">Double click<br>to upload image</div>
+                    </div>
+                    <h3>Hot Towel Shave</h3>
+                    <p>Luxury straight razor shave experience</p>
+                    <div class="service-price">$35</div>
+                </div>
+                <div class="service-card">
+                    <div style="position: relative;">
+                        <img src="" alt="Add your image here - Double click to upload" class="service-icon">
+                        <div class="service-image-placeholder">Double click<br>to upload image</div>
+                    </div>
+                    <h3>Full Service</h3>
+                    <p>Complete cut, shave, and grooming</p>
+                    <div class="service-price">$50</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- GALLERY SECTION -->
+    <section class="gallery" id="gallery">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Our Work</h2>
+                <p class="section-subtitle">See the transformations we create every day</p>
+            </div>
+            <div class="gallery-grid">
+                <div class="gallery-item">
+                    <img src="" alt="Add your image here - Double click to upload">
+                    <div class="gallery-image-placeholder">Double click<br>to upload image</div>
+                </div>
+                <div class="gallery-item">
+                    <img src="" alt="Add your image here - Double click to upload">
+                    <div class="gallery-image-placeholder">Double click<br>to upload image</div>
+                </div>
+                <div class="gallery-item">
+                    <img src="" alt="Add your image here - Double click to upload">
+                    <div class="gallery-image-placeholder">Double click<br>to upload image</div>
+                </div>
+                <div class="gallery-item">
+                    <img src="" alt="Add your image here - Double click to upload">
+                    <div class="gallery-image-placeholder">Double click<br>to upload image</div>
+                </div>
+                <div class="gallery-item">
+                    <img src="" alt="Add your image here - Double click to upload">
+                    <div class="gallery-image-placeholder">Double click<br>to upload image</div>
+                </div>
+                <div class="gallery-item">
+                    <img src="" alt="Add your image here - Double click to upload">
+                    <div class="gallery-image-placeholder">Double click<br>to upload image</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- PRICING & PAYMENT SECTION -->
+    <section class="pricing" id="pricing">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Pricing & Packages</h2>
+                <p class="section-subtitle">Choose the perfect service for your needs</p>
+            </div>
+            <div class="pricing-grid">
+                <div class="pricing-card">
+                    <h3 class="pricing-name">Basic</h3>
+                    <div class="pricing-amount">$25</div>
+                    <ul class="pricing-features">
+                        <li><span class="checkmark">✓</span><span class="feature-text">Classic Cut</span></li>
+                        <li><span class="checkmark">✓</span><span class="feature-text">Hair Wash</span></li>
+                        <li><span class="checkmark">✓</span><span class="feature-text">Styling</span></li>
+                        <li><span class="checkmark">✓</span><span class="feature-text">15 Minute Duration</span></li>
+                    </ul>
+                    <a href="https://your-payment-link.com/basic" class="payment-button" target="_blank">Pay Now</a>
+                </div>
+                <div class="pricing-card featured">
+                    <h3 class="pricing-name">Premium</h3>
+                    <div class="pricing-amount">$45</div>
+                    <ul class="pricing-features">
+                        <li><span class="checkmark">✓</span><span class="feature-text">Premium Cut</span></li>
+                        <li><span class="checkmark">✓</span><span class="feature-text">Hair Wash</span></li>
+                        <li><span class="checkmark">✓</span><span class="feature-text">Beard Trim</span></li>
+                        <li><span class="checkmark">✓</span><span class="feature-text">Hot Towel</span></li>
+                        <li><span class="checkmark">✓</span><span class="feature-text">Styling Products</span></li>
+                        <li><span class="checkmark">✓</span><span class="feature-text">30 Minute Duration</span></li>
+                    </ul>
+                    <a href="https://your-payment-link.com/premium" class="payment-button" target="_blank">Pay Now</a>
+                </div>
+                <div class="pricing-card">
+                    <h3 class="pricing-name">Elite</h3>
+                    <div class="pricing-amount">$65</div>
+                    <ul class="pricing-features">
+                        <li><span class="checkmark">✓</span><span class="feature-text">Signature Cut</span></li>
+                        <li><span class="checkmark">✓</span><span class="feature-text">Hot Towel Shave</span></li>
+                        <li><span class="checkmark">✓</span><span class="feature-text">Beard Design</span></li>
+                        <li><span class="checkmark">✓</span><span class="feature-text">Hair Treatment</span></li>
+                        <li><span class="checkmark">✓</span><span class="feature-text">Premium Products</span></li>
+                        <li><span class="checkmark">✓</span><span class="feature-text">Face Massage</span></li>
+                        <li><span class="checkmark">✓</span><span class="feature-text">45 Minute Duration</span></li>
+                    </ul>
+                    <a href="https://your-payment-link.com/elite" class="payment-button" target="_blank">Pay Now</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- TESTIMONIALS SECTION -->
+    <section class="testimonials" id="testimonials">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">What Clients Say</h2>
+                <p class="section-subtitle">Real reviews from satisfied customers</p>
+            </div>
+            <div class="testimonials-grid">
+                <div class="testimonial-card">
+                    <div class="testimonial-stars">⭐⭐⭐⭐⭐</div>
+                    <p class="testimonial-text">Best barbershop in town! The attention to detail is incredible. I've never looked so sharp!</p>
+                    <div class="testimonial-author">- Michael Johnson</div>
+                </div>
+                <div class="testimonial-card">
+                    <div class="testimonial-stars">⭐⭐⭐⭐⭐</div>
+                    <p class="testimonial-text">Professional service and amazing atmosphere. They really know how to create the perfect fade.</p>
+                    <div class="testimonial-author">- David Martinez</div>
+                </div>
+                <div class="testimonial-card">
+                    <div class="testimonial-stars">⭐⭐⭐⭐⭐</div>
+                    <p class="testimonial-text">Been coming here for months. The Elite package is worth every penny. Highly recommend!</p>
+                    <div class="testimonial-author">- James Anderson</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CONTACT SECTION -->
+    <section class="contact" id="contact">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Get In Touch</h2>
+                <p class="section-subtitle">Visit us or reach out for appointments</p>
+            </div>
+            <div class="contact-grid">
+                <div class="contact-info">
+                    <h3>Contact Information</h3>
+                    <div class="contact-item">
+                        <div class="contact-icon">📍</div>
+                        <div class="contact-details">
+                            <h4>Address</h4>
+                            <p>123 Main Street<br>Your City, ST 12345</p>
+                        </div>
+                    </div>
+                    <div class="contact-item">
+                        <div class="contact-icon">📞</div>
+                        <div class="contact-details">
+                            <h4>Phone</h4>
+                            <p>(555) 123-4567</p>
+                        </div>
+                    </div>
+                    <div class="contact-item">
+                        <div class="contact-icon">✉️</div>
+                        <div class="contact-details">
+                            <h4>Email</h4>
+                            <p>info@elitebarbershop.com</p>
+                        </div>
+                    </div>
+                    <div class="contact-item">
+                        <div class="contact-icon">🕐</div>
+                        <div class="contact-details">
+                            <h4>Hours</h4>
+                            <p>Mon - Fri: 9am - 7pm<br>Saturday: 8am - 6pm<br>Sunday: Closed</p>
+                        </div>
+                    </div>
+                </div>
+                <form class="contact-form">
+                    <input type="text" placeholder="Your Name" required>
+                    <input type="email" placeholder="Your Email" required>
+                    <input type="tel" placeholder="Your Phone" required>
+                    <textarea placeholder="Your Message" required></textarea>
+                    <button type="submit" class="submit-btn">Send Message</button>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer>
+        <div class="footer-content">
+            <div class="social-links">
+                <a href="https://facebook.com" target="_blank">📘</a>
+                <a href="https://instagram.com" target="_blank">📷</a>
+                <a href="https://twitter.com" target="_blank">🐦</a>
+                <a href="https://youtube.com" target="_blank">📹</a>
+            </div>
+            <p class="footer-text">&copy; 2024 Elite Barbershop. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        /* =====================================================
+           JAVASCRIPT - Interactive Features
+           ===================================================== */
+        
+        // Smooth scrolling for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    const headerHeight = 80;
+                    const targetPosition = target.offsetTop - headerHeight;
+                    window.scrollTo({
+                        top: targetPosition,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+        
+        // Header scroll effect
+        window.addEventListener('scroll', () => {
+            const header = document.getElementById('header');
+            if (window.pageYOffset > 100) {
+                header.style.background = 'rgba(26, 26, 26, 1)';
+            } else {
+                header.style.background = 'rgba(26, 26, 26, 0.98)';
+            }
+        });
+        
+        // Form submission handler
+        document.querySelector('.contact-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            alert('Thank you for your message! We will get back to you soon.');
+            this.reset();
+        });
+        
+        // Add fade-in animation on scroll
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+        
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('fade-in');
+                }
+            });
+        }, observerOptions);
+        
+        document.querySelectorAll('.service-card, .testimonial-card, .pricing-card').forEach(el => {
+            observer.observe(el);
+        });
+    </script>
+</body>
+</html>

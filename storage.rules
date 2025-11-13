@@ -1,0 +1,42 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function adminEmails() {
+      return ['tjayburger2004@gmail.com'];
+    }
+
+    function isAdmin() {
+      return isSignedIn()
+        && request.auth.token.email != null
+        && adminEmails().hasAny([request.auth.token.email.toLowerCase()]);
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    match /template-previews/{templateId}/{fileName} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /templates/{templateId}/{fileName} {
+      allow read, write: if isAdmin();
+    }
+
+    match /profile-images/{userId}/{fileName} {
+      allow read: if true;
+      allow write: if isOwner(userId) || isAdmin();
+      allow delete: if isOwner(userId) || isAdmin();
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if isAdmin();
+    }
+  }
+}
+

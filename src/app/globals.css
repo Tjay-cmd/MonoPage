@@ -1,0 +1,191 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+  
+  body {
+    @apply bg-gray-50;
+  }
+}
+
+@layer components {
+  /* Modern Button Styles */
+  .btn-primary {
+    @apply bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-lg shadow-orange-500/25;
+  }
+  
+  .btn-secondary {
+    @apply bg-white hover:bg-gray-50 text-gray-700 font-semibold py-3 px-6 rounded-xl border border-gray-200 transition-all duration-300 transform hover:scale-105 hover:shadow-lg;
+  }
+
+  .btn-success {
+    @apply bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-lg shadow-emerald-500/25;
+  }
+
+  .btn-danger {
+    @apply bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-lg shadow-red-500/25;
+  }
+  
+  /* Modern Card Styles */
+  .card {
+    @apply bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-8 transition-all duration-300 hover:shadow-2xl hover:scale-[1.02];
+  }
+  
+  .card-gradient {
+    @apply bg-gradient-to-br from-white to-blue-50/50 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-8 transition-all duration-300 hover:shadow-2xl hover:scale-[1.02];
+  }
+  
+  /* Action Card Styles */
+  .action-card {
+    @apply bg-gradient-to-br from-white to-blue-50/30 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6 transition-all duration-300 hover:shadow-2xl hover:scale-105 hover:-translate-y-1 cursor-pointer;
+  }
+  
+  .action-card-blue {
+    @apply bg-gradient-to-br from-blue-500/10 to-blue-600/20 hover:from-blue-500/20 hover:to-blue-600/30;
+  }
+  
+  .action-card-green {
+    @apply bg-gradient-to-br from-emerald-500/10 to-emerald-600/20 hover:from-emerald-500/20 hover:to-emerald-600/30;
+  }
+  
+  .action-card-purple {
+    @apply bg-gradient-to-br from-purple-500/10 to-purple-600/20 hover:from-purple-500/20 hover:to-purple-600/30;
+  }
+  
+  .action-card-amber {
+    @apply bg-gradient-to-br from-amber-500/10 to-amber-600/20 hover:from-amber-500/20 hover:to-amber-600/30;
+  }
+  
+  .action-card-rose {
+    @apply bg-gradient-to-br from-rose-500/10 to-rose-600/20 hover:from-rose-500/20 hover:to-rose-600/30;
+  }
+  
+  /* Icon Container Styles */
+  .icon-container {
+    @apply w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-300;
+  }
+  
+  .icon-container:hover {
+    @apply scale-110 rotate-3;
+  }
+  
+  .icon-container-blue {
+    @apply bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/25;
+  }
+  
+  .icon-container-green {
+    @apply bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-lg shadow-emerald-500/25;
+  }
+  
+  .icon-container-purple {
+    @apply bg-gradient-to-br from-purple-500 to-purple-600 text-white shadow-lg shadow-purple-500/25;
+  }
+  
+  .icon-container-amber {
+    @apply bg-gradient-to-br from-amber-500 to-amber-600 text-white shadow-lg shadow-amber-500/25;
+  }
+  
+  .icon-container-rose {
+    @apply bg-gradient-to-br from-rose-500 to-rose-600 text-white shadow-lg shadow-rose-500/25;
+  }
+  
+  /* Progress Bar Styles */
+  .progress-bar {
+    @apply bg-gray-200 rounded-full h-3 overflow-hidden;
+  }
+  
+  .progress-fill {
+    @apply bg-gradient-to-r from-blue-500 to-blue-600 h-full rounded-full transition-all duration-1000 ease-out;
+  }
+  
+  /* Input Field Styles */
+  .input-field {
+    @apply w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-300 bg-white/50 backdrop-blur-sm;
+  }
+  
+  /* Navigation Styles */
+  .nav-container {
+    @apply bg-white/80 backdrop-blur-md shadow-lg border-b border-white/20;
+  }
+  
+  /* Tier Badge Styles */
+  .tier-badge {
+    @apply px-4 py-2 rounded-full text-sm font-semibold shadow-lg transition-all duration-300 hover:scale-105;
+  }
+  
+  .tier-badge-starter {
+    @apply bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-emerald-500/25;
+  }
+  
+  .tier-badge-pro {
+    @apply bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-blue-500/25;
+  }
+  
+  .tier-badge-business {
+    @apply bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-purple-500/25;
+  }
+  
+  .tier-badge-premium {
+    @apply bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-amber-500/25;
+  }
+
+  /* Wix-inspired Website Card Styles */
+  .website-card {
+    @apply rounded-xl p-6 hover:shadow-lg transition-all duration-300 hover:scale-105 cursor-pointer;
+  }
+
+  .website-card-green {
+    @apply bg-green-100 hover:bg-green-200;
+  }
+
+  .website-card-pink {
+    @apply bg-pink-100 hover:bg-pink-200;
+  }
+
+  .website-card-blue {
+    @apply bg-blue-100 hover:bg-blue-200;
+  }
+
+  .website-card-purple {
+    @apply bg-purple-100 hover:bg-purple-200;
+  }
+
+  .website-card-yellow {
+    @apply bg-yellow-100 hover:bg-yellow-200;
+  }
+
+  .website-card-red {
+    @apply bg-red-100 hover:bg-red-200;
+  }
+
+  .website-card-indigo {
+    @apply bg-indigo-100 hover:bg-indigo-200;
+  }
+
+  .website-card-teal {
+    @apply bg-teal-100 hover:bg-teal-200;
+  }
+
+  /* Wix-style Preview Container */
+  .preview-container {
+    @apply aspect-video bg-white rounded-lg mb-4 flex items-center justify-center text-4xl;
+  }
+
+  /* Wix-style Edit Button */
+  .edit-button {
+    @apply bg-white text-gray-600 px-3 py-1 rounded-lg text-xs font-medium hover:bg-gray-50 transition-colors;
+  }
+  
+  .edit-button:hover {
+    @apply bg-blue-50 text-blue-600;
+  }
+
+  /* Wix-style Add New Card */
+  .add-new-card {
+    @apply bg-gray-100 border-2 border-dashed border-gray-300 rounded-xl p-6 hover:border-blue-400 hover:bg-blue-50 transition-all duration-300 cursor-pointer;
+  }
+}

@@ -1,0 +1,92 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function adminEmails() {
+      return ['tjayburger2004@gmail.com'];
+    }
+
+    function isAdmin() {
+      return isSignedIn()
+        && request.auth.token.email != null
+        && adminEmails().hasAny([request.auth.token.email.toLowerCase()]);
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isOwnerField(field) {
+      return isSignedIn() && field != null && field == request.auth.uid;
+    }
+
+    match /users/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId)
+        && (
+          !('tier' in request.resource.data)
+          || request.resource.data.tier in ['free', 'starter']
+        );
+      allow update: if isOwner(userId)
+        && resource != null
+        && (
+          !('tier' in request.resource.data)
+          || request.resource.data.tier == resource.data.tier
+          || (
+            request.resource.data.tier in ['free', 'starter', 'pro', 'business', 'premium']
+            && request.resource.data.payfastToken is string
+            && request.resource.data.payfastToken != ''
+          )
+        );
+      allow delete: if false;
+    }
+
+    match /merchantSettings/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow write: if isOwner(userId);
+      allow delete: if isOwner(userId) || isAdmin();
+    }
+
+    match /services/{serviceId} {
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid;
+      allow read, update, delete: if isSignedIn()
+        && resource != null
+        && resource.data.userId == request.auth.uid;
+    }
+
+    match /user_websites/{websiteId} {
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid;
+      allow read, update, delete: if isSignedIn()
+        && resource != null
+        && resource.data.userId == request.auth.uid;
+    }
+
+    match /userWebsites/{websiteId} {
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid;
+      allow read, update, delete: if isSignedIn()
+        && resource != null
+        && resource.data.userId == request.auth.uid;
+    }
+
+    match /transactions/{transactionId} {
+      allow read: if isAdmin()
+        || (isSignedIn() && resource != null && resource.data.userId == request.auth.uid);
+      allow write: if false;
+    }
+
+    match /templates/{templateId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
