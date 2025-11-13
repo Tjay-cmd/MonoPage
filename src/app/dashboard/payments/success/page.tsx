@@ -61,8 +61,12 @@ export default function PaymentSuccessPage() {
     console.log('🎉 Pending upgrade:', pendingUpgrade);
   }, [pendingUpgrade]); // Log when pending upgrade changes
 
+  // Type definition for valid tier values
+  type ValidTier = 'free' | 'starter' | 'pro' | 'business' | 'premium';
+  
   // Get tier from pending upgrade data or current subscription
-  const tier = pendingUpgrade?.tier || subscription?.tier || 'pro';
+  // Type narrow to valid tier values
+  const tier: ValidTier = (pendingUpgrade?.tier || subscription?.tier || 'pro') as ValidTier;
 
   useEffect(() => {
     // Check for pending upgrade
@@ -205,7 +209,7 @@ export default function PaymentSuccessPage() {
     );
   }
 
-  const tierIcons = {
+  const tierIcons: Record<ValidTier, React.ComponentType<{ className?: string }>> = {
     free: Globe,
     starter: Zap,
     pro: Star,
@@ -213,7 +217,7 @@ export default function PaymentSuccessPage() {
     premium: Crown,
   };
 
-  const tierNames = {
+  const tierNames: Record<ValidTier, string> = {
     free: 'Free',
     starter: 'Starter',
     pro: 'Professional',
@@ -221,7 +225,7 @@ export default function PaymentSuccessPage() {
     premium: 'Enterprise',
   };
 
-  const tierColors = {
+  const tierColors: Record<ValidTier, string> = {
     free: 'gray',
     starter: 'green',
     pro: 'blue',
