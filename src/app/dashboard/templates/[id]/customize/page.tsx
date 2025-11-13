@@ -701,10 +701,11 @@ export default function CustomizeTemplatePage() {
       
     } catch (error) {
       console.error('Error loading template content:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       setTemplateContent(`
         <div style="padding: 20px; text-align: center; color: #e74c3c;">
           <h3>Error Loading Template</h3>
-          <p>Failed to load your uploaded template: ${error.message}</p>
+          <p>Failed to load your uploaded template: ${errorMessage}</p>
           <p>Please check that your ZIP file contains an HTML file (index.html or similar).</p>
         </div>
       `);
