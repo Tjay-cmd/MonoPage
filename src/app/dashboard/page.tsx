@@ -21,7 +21,7 @@ import {
   Crown,
   Bell,
   Search,
-  User,
+  User as UserIcon,
   TrendingUp,
   Zap,
   Target,
@@ -410,7 +410,7 @@ export default function DashboardPage() {
             <div className="pt-6 border-t border-gray-200 mt-auto">
               <div className="flex items-center space-x-3 mb-3">
                 <div className="w-8 h-8 bg-black rounded-full flex items-center justify-center flex-shrink-0">
-                  <User className="h-4 w-4 text-white" />
+                  <UserIcon className="h-4 w-4 text-white" />
                 </div>
                 <span className="text-sm font-medium text-gray-700 truncate">{user.businessName}</span>
               </div>
