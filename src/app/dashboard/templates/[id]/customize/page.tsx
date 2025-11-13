@@ -577,17 +577,25 @@ export default function CustomizeTemplatePage() {
             
             // Get the filename for replacement
             const imageName = imageFile.split('/').pop(); // Get just the filename
+            if (!imageName) {
+              console.warn(`Unable to extract filename from: ${imageFile}`);
+              continue;
+            }
+            
             const imagePath = `images/${imageName}`;
             const imagePathAlt = `./images/${imageName}`;
             const imagePathAlt2 = `../images/${imageName}`;
             
             console.log(`Converting image: ${imageName} to data URL`);
             
+            // Escape special regex characters in the image paths
+            const escapeRegExp = (string: string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            
             // Replace all possible references to this image
-            processedHtml = processedHtml.replace(new RegExp(imagePath, 'g'), imageDataUrl);
-            processedHtml = processedHtml.replace(new RegExp(imagePathAlt, 'g'), imageDataUrl);
-            processedHtml = processedHtml.replace(new RegExp(imagePathAlt2, 'g'), imageDataUrl);
-            processedHtml = processedHtml.replace(new RegExp(imageName, 'g'), imageDataUrl);
+            processedHtml = processedHtml.replace(new RegExp(escapeRegExp(imagePath), 'g'), imageDataUrl);
+            processedHtml = processedHtml.replace(new RegExp(escapeRegExp(imagePathAlt), 'g'), imageDataUrl);
+            processedHtml = processedHtml.replace(new RegExp(escapeRegExp(imagePathAlt2), 'g'), imageDataUrl);
+            processedHtml = processedHtml.replace(new RegExp(escapeRegExp(imageName), 'g'), imageDataUrl);
           } catch (imageError) {
             console.warn(`Failed to process image ${imageFile}:`, imageError);
           }
