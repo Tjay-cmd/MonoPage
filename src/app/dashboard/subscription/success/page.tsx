@@ -24,7 +24,17 @@ export default function SubscriptionSuccessPage() {
 
   // Get payment details from URL params
   const paymentId = searchParams.get('m_payment_id');
-  const tier = searchParams.get('custom_str2') as any;
+  
+  // Type definition for valid tier values
+  type ValidTier = 'pro' | 'business' | 'premium';
+  
+  // Get tier from URL params or subscription, with type narrowing
+  const tierParam = searchParams.get('custom_str2');
+  const tier: ValidTier = (tierParam === 'pro' || tierParam === 'business' || tierParam === 'premium') 
+    ? (tierParam as ValidTier)
+    : (subscription?.tier === 'pro' || subscription?.tier === 'business' || subscription?.tier === 'premium')
+      ? (subscription.tier as ValidTier)
+      : 'pro'; // Default fallback
 
   if (loading) {
     return (
@@ -37,19 +47,19 @@ export default function SubscriptionSuccessPage() {
     );
   }
 
-  const tierIcons = {
+  const tierIcons: Record<ValidTier, React.ComponentType<{ className?: string }>> = {
     pro: Star,
     business: Building,
     premium: Crown,
   };
 
-  const tierNames = {
+  const tierNames: Record<ValidTier, string> = {
     pro: 'Professional',
     business: 'Business',
     premium: 'Enterprise',
   };
 
-  const tierColors = {
+  const tierColors: Record<ValidTier, string> = {
     pro: 'blue',
     business: 'purple',
     premium: 'yellow',
@@ -64,7 +74,7 @@ export default function SubscriptionSuccessPage() {
             <div className="text-center">
               <CheckCircle className="h-16 w-16 text-green-600 mx-auto mb-4" />
               <h1 className="text-2xl font-bold text-gray-900 mb-2">
-                Welcome to {tierNames[tier] || 'Your'} Plan!
+                Welcome to {tierNames[tier]} Plan!
               </h1>
               <p className="text-gray-600">
                 Your subscription has been activated successfully.
@@ -92,10 +102,10 @@ export default function SubscriptionSuccessPage() {
 
             <div className="text-center mb-8">
               <h2 className="text-xl font-bold text-gray-900 mb-2">
-                {tierNames[tier] || 'Professional'} Plan
+                {tierNames[tier]} Plan
               </h2>
               <p className="text-gray-600">
-                You now have access to all {tierNames[tier]?.toLowerCase() || 'professional'} features!
+                You now have access to all {tierNames[tier].toLowerCase()} features!
               </p>
             </div>
 
