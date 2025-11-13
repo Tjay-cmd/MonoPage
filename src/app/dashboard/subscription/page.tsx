@@ -313,12 +313,6 @@ export default function SubscriptionPage() {
                   </div>
                 )}
 
-                {plan.badge && (
-                  <div className="absolute top-0 left-0 bg-yellow-500 text-white px-3 py-1 text-xs font-medium rounded-br-lg">
-                    {plan.badge}
-                  </div>
-                )}
-
                 <div className="p-6">
                   <div className="flex items-center mb-4">
                     <Icon className={`h-8 w-8 ${
