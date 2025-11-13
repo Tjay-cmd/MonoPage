@@ -1513,9 +1513,6 @@ Example: { "pages": [...], "styles": [...] }'
                       src={template.previewImage}
                       alt={template.name}
                       className="w-full h-full object-cover"
-                      style={{
-                        imageRendering: 'high-quality',
-                      } as React.CSSProperties}
                       loading="lazy"
                     />
                   ) : (
