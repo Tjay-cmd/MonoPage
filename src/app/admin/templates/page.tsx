@@ -1515,8 +1515,7 @@ Example: { "pages": [...], "styles": [...] }'
                       className="w-full h-full object-cover"
                       style={{
                         imageRendering: 'high-quality',
-                        imageRendering: '-webkit-optimize-contrast',
-                      }}
+                      } as React.CSSProperties}
                       loading="lazy"
                     />
                   ) : (
