@@ -571,7 +571,8 @@ export default function CustomizeTemplatePage() {
           try {
             const imageBlob = await image.async('blob');
             const arrayBuffer = await imageBlob.arrayBuffer();
-            const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+            const uint8Array = new Uint8Array(arrayBuffer);
+            const base64 = btoa(String.fromCharCode.apply(null, Array.from(uint8Array)));
             const imageDataUrl = `data:${imageBlob.type};base64,${base64}`;
             
             // Get the filename for replacement
