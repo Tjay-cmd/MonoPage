@@ -852,8 +852,9 @@ export default function AdminTemplatesPage() {
             // Ensure fonts are loaded and properly rendered in the cloned document
             const clonedBody = clonedDoc.body;
             if (clonedBody) {
-              clonedBody.style.fontSmoothing = 'antialiased';
-              clonedBody.style.webkitFontSmoothing = 'antialiased';
+              // Use setProperty for vendor-prefixed properties to avoid TypeScript errors
+              clonedBody.style.setProperty('-webkit-font-smoothing', 'antialiased');
+              clonedBody.style.setProperty('-moz-osx-font-smoothing', 'grayscale');
               clonedBody.style.textRendering = 'optimizeLegibility';
               clonedBody.style.imageRendering = 'crisp-edges';
               
@@ -861,8 +862,8 @@ export default function AdminTemplatesPage() {
               const allElements = clonedBody.querySelectorAll('*');
               allElements.forEach((el: any) => {
                 if (el && el.style) {
-                  el.style.fontSmoothing = 'antialiased';
-                  el.style.webkitFontSmoothing = 'antialiased';
+                  el.style.setProperty('-webkit-font-smoothing', 'antialiased');
+                  el.style.setProperty('-moz-osx-font-smoothing', 'grayscale');
                   el.style.textRendering = 'optimizeLegibility';
                 }
               });
