@@ -71,7 +71,24 @@ A professional SaaS platform that enables small businesses (barbers, photographe
 
 ## 🚀 Deployment
 
-### Firebase Hosting
+### Vercel (Recommended for now)
+
+1. **Push code to GitHub** (already done)
+   - Your repo: `https://github.com/Tjay-cmd/MonoPage`
+
+2. **Deploy to Vercel**
+   - Go to [vercel.com](https://vercel.com)
+   - Sign in with GitHub
+   - Click "Add New..." → "Project"
+   - Import `Tjay-cmd/MonoPage`
+   - Add all environment variables (see [VERCEL_DEPLOYMENT_GUIDE.md](./VERCEL_DEPLOYMENT_GUIDE.md))
+   - Click "Deploy"
+
+3. **Your app will be live at:** `https://your-app-name.vercel.app`
+
+📖 **Full Vercel deployment guide:** [VERCEL_DEPLOYMENT_GUIDE.md](./VERCEL_DEPLOYMENT_GUIDE.md)
+
+### Firebase Hosting (For later)
 
 1. **Build the project**
    ```bash

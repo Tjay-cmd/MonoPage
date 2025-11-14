@@ -91,11 +91,30 @@ if (!getApps().length) {
 
   try {
     if (explicitConfig) {
+      console.log('[firebase-admin] Initializing with explicit credentials.', {
+        projectId: explicitConfig.projectId,
+        clientEmail: explicitConfig.clientEmail,
+        hasPrivateKey: !!explicitConfig.privateKey,
+      });
       initializeApp({
         credential: cert(explicitConfig),
+        projectId: explicitConfig.projectId,
         storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
       });
+      console.log('[firebase-admin] Successfully initialized with explicit credentials.');
     } else {
+      // In production (Vercel), we require explicit credentials
+      const isProduction = process.env.VERCEL || process.env.NODE_ENV === 'production';
+      
+      if (isProduction) {
+        const errorMessage =
+          'Firebase Admin SDK requires explicit credentials in production. ' +
+          'Please set FIREBASE_ADMIN_CLIENT_EMAIL, FIREBASE_ADMIN_PRIVATE_KEY, and FIREBASE_ADMIN_PROJECT_ID ' +
+          'environment variables in Vercel, or provide FIREBASE_ADMIN_CREDENTIALS as a JSON string or base64-encoded JSON.';
+        console.error('[firebase-admin]', errorMessage);
+        throw new Error(errorMessage);
+      }
+
       console.warn(
         '[firebase-admin] Using application default credentials. ' +
           'Configure FIREBASE_ADMIN_CLIENT_EMAIL and FIREBASE_ADMIN_PRIVATE_KEY (or FIREBASE_ADMIN_CREDENTIALS) for explicit credentials.',
@@ -108,8 +127,9 @@ if (!getApps().length) {
   } catch (error) {
     const hint =
       'Provide Firebase Admin credentials via FIREBASE_ADMIN_CREDENTIALS (JSON or base64), or FIREBASE_ADMIN_CLIENT_EMAIL / FIREBASE_ADMIN_PRIVATE_KEY / FIREBASE_ADMIN_PROJECT_ID.';
-    console.error('Failed to initialize Firebase Admin SDK:', error);
-    throw new Error(`${(error as Error)?.message ?? error}\n${hint}`);
+    console.error('[firebase-admin] Failed to initialize Firebase Admin SDK:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    throw new Error(`Firebase Admin initialization failed: ${errorMessage}\n${hint}`);
   }
 }
 
