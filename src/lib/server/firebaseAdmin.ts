@@ -86,6 +86,15 @@ function getAdminConfig(): RequiredAdminConfig | null {
   return readJsonCredential() ?? readEnvCredential();
 }
 
+// Helper to check if we're in build time (check dynamically, not just once)
+function isBuildTimeCheck(): boolean {
+  return (
+    process.env.NEXT_PHASE === 'phase-production-build' ||
+    (process.env.NODE_ENV === 'production' && !process.env.VERCEL_ENV && !process.env.VERCEL_URL) ||
+    process.argv.includes('build')
+  );
+}
+
 // Lazy initialization - only initialize when actually needed (runtime), not during build
 let adminAppInitialized = false;
 
@@ -95,11 +104,8 @@ function initializeAdminApp() {
   }
 
   // During build time, skip initialization (credentials might not be available)
-  // Check multiple build indicators
-  const isBuildTime = 
-    process.env.NEXT_PHASE === 'phase-production-build' ||
-    process.env.NODE_ENV === 'production' && !process.env.VERCEL_ENV ||
-    process.argv.includes('build');
+  // Check multiple build indicators dynamically
+  const isBuildTime = isBuildTimeCheck();
   
   if (isBuildTime) {
     console.log('[firebase-admin] Skipping initialization during build time.');
@@ -163,32 +169,39 @@ function initializeAdminApp() {
   }
 }
 
-// Check if we're in build time
-const isBuildTime = 
-  process.env.NEXT_PHASE === 'phase-production-build' ||
-  (process.env.NODE_ENV === 'production' && !process.env.VERCEL_ENV) ||
-  process.argv.includes('build');
+// Lazy getters - only initialize when actually accessed at runtime
+let _adminDb: ReturnType<typeof getFirestore> | null = null;
+let _adminAuth: ReturnType<typeof getAuth> | null = null;
 
-// Lazy initialization wrapper
 function getAdminDbLazy(): ReturnType<typeof getFirestore> {
   // During build, return early without initializing
-  if (isBuildTime) {
+  if (isBuildTimeCheck()) {
     // Return a minimal object that satisfies the type but won't be used
     // This prevents build errors while ensuring runtime works correctly
     return {} as ReturnType<typeof getFirestore>;
   }
-  initializeAdminApp();
-  return getFirestore();
+  
+  // At runtime, initialize if not already done
+  if (!_adminDb) {
+    initializeAdminApp();
+    _adminDb = getFirestore();
+  }
+  return _adminDb;
 }
 
 function getAdminAuthLazy(): ReturnType<typeof getAuth> {
   // During build, return early without initializing
-  if (isBuildTime) {
+  if (isBuildTimeCheck()) {
     // Return a minimal object that satisfies the type but won't be used
     return {} as ReturnType<typeof getAuth>;
   }
-  initializeAdminApp();
-  return getAuth();
+  
+  // At runtime, initialize if not already done
+  if (!_adminAuth) {
+    initializeAdminApp();
+    _adminAuth = getAuth();
+  }
+  return _adminAuth;
 }
 
 // Export with lazy initialization - only initializes when actually accessed

@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
     // Build redirect URLs
     const returnUrl = `${baseUrl}/dashboard/payments/success`;
     const cancelUrl = `${baseUrl}/dashboard/payments/cancel`;
-    const notifyUrl = `${baseUrl}/api/payfast/notify`;
+    const notifyUrl = `${baseUrl}/api/payfast/webhook`; // Use webhook route for subscription payments
 
     console.log('🔗 PayFast Redirect URLs Debug:');
     console.log('  Request URL:', request.url);
@@ -68,7 +68,8 @@ export async function POST(request: NextRequest) {
     const paymentId = `${userId}-${tier}-${timestamp}`;
 
     // Use the EXACT working format but with dynamic URLs from environment
-    const payfastUrl = `https://sandbox.payfast.co.za/eng/process?return_url=${encodeURIComponent(returnUrl)}&cancel_url=${encodeURIComponent(cancelUrl)}&notify_url=${encodeURIComponent(notifyUrl)}&name_first=${encodeURIComponent(name || 'Customer')}&name_last=Name&email_address=${encodeURIComponent(email || 'customer@example.com')}&m_payment_id=${paymentId}&amount=100.00&item_name=Pro%20Plan&item_description=Pro%20plan%20for%20my%20SaaS&custom_str1=${userId}&custom_str2=${tier}&merchant_id=10042577&merchant_key=lwzxkeczltrf1`;
+    // IMPORTANT: Include custom_str3='subscription' so the webhook knows this is a subscription payment
+    const payfastUrl = `https://sandbox.payfast.co.za/eng/process?return_url=${encodeURIComponent(returnUrl)}&cancel_url=${encodeURIComponent(cancelUrl)}&notify_url=${encodeURIComponent(notifyUrl)}&name_first=${encodeURIComponent(name || 'Customer')}&name_last=Name&email_address=${encodeURIComponent(email || 'customer@example.com')}&m_payment_id=${paymentId}&amount=100.00&item_name=Pro%20Plan&item_description=Pro%20plan%20for%20my%20SaaS&custom_str1=${userId}&custom_str2=${tier}&custom_str3=subscription&merchant_id=10042577&merchant_key=lwzxkeczltrf1`;
 
     console.log('✅ Generated working PayFast URL with dynamic redirect URLs');
 
