@@ -20,9 +20,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get base URL from environment variable (works for both dev and production)
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
-      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+    // Get base URL - try multiple sources to ensure we get the correct URL
+    // Priority: 1. Request headers (most reliable), 2. Environment variable, 3. Vercel URL, 4. localhost
+    const protocol = request.headers.get('x-forwarded-proto') || 'https';
+    const host = request.headers.get('host') || request.headers.get('x-forwarded-host');
+    const requestOrigin = host ? `${protocol}://${host}` : null;
+    
+    const baseUrl = 
+      requestOrigin || // From request headers (most reliable)
+      process.env.NEXT_PUBLIC_APP_URL || // From environment variable
+      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null) || // Vercel auto-detected URL
+      'http://localhost:3000'; // Fallback for local dev
     
     // Build redirect URLs
     const returnUrl = `${baseUrl}/dashboard/payments/success`;
@@ -30,6 +38,9 @@ export async function POST(request: NextRequest) {
     const notifyUrl = `${baseUrl}/api/payfast/notify`;
 
     console.log('🔗 PayFast Redirect URLs:');
+    console.log('  Request Origin:', requestOrigin);
+    console.log('  NEXT_PUBLIC_APP_URL:', process.env.NEXT_PUBLIC_APP_URL || '(not set)');
+    console.log('  VERCEL_URL:', process.env.VERCEL_URL || '(not set)');
     console.log('  Base URL:', baseUrl);
     console.log('  Return URL:', returnUrl);
     console.log('  Cancel URL:', cancelUrl);
