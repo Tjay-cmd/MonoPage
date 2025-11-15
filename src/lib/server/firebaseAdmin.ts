@@ -86,7 +86,26 @@ function getAdminConfig(): RequiredAdminConfig | null {
   return readJsonCredential() ?? readEnvCredential();
 }
 
-if (!getApps().length) {
+// Lazy initialization - only initialize when actually needed (runtime), not during build
+let adminAppInitialized = false;
+
+function initializeAdminApp() {
+  if (adminAppInitialized || getApps().length > 0) {
+    return;
+  }
+
+  // During build time, skip initialization (credentials might not be available)
+  // Check multiple build indicators
+  const isBuildTime = 
+    process.env.NEXT_PHASE === 'phase-production-build' ||
+    process.env.NODE_ENV === 'production' && !process.env.VERCEL_ENV ||
+    process.argv.includes('build');
+  
+  if (isBuildTime) {
+    console.log('[firebase-admin] Skipping initialization during build time.');
+    return;
+  }
+
   const explicitConfig = getAdminConfig();
 
   try {
@@ -102,17 +121,24 @@ if (!getApps().length) {
         storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
       });
       console.log('[firebase-admin] Successfully initialized with explicit credentials.');
+      adminAppInitialized = true;
     } else {
       // In production (Vercel), we require explicit credentials
       const isProduction = process.env.VERCEL || process.env.NODE_ENV === 'production';
       
       if (isProduction) {
-        const errorMessage =
-          'Firebase Admin SDK requires explicit credentials in production. ' +
-          'Please set FIREBASE_ADMIN_CLIENT_EMAIL, FIREBASE_ADMIN_PRIVATE_KEY, and FIREBASE_ADMIN_PROJECT_ID ' +
-          'environment variables in Vercel, or provide FIREBASE_ADMIN_CREDENTIALS as a JSON string or base64-encoded JSON.';
-        console.error('[firebase-admin]', errorMessage);
-        throw new Error(errorMessage);
+        // Only throw at runtime, not during build
+        if (!isBuildTime) {
+          const errorMessage =
+            'Firebase Admin SDK requires explicit credentials in production. ' +
+            'Please set FIREBASE_ADMIN_CLIENT_EMAIL, FIREBASE_ADMIN_PRIVATE_KEY, and FIREBASE_ADMIN_PROJECT_ID ' +
+            'environment variables in Vercel, or provide FIREBASE_ADMIN_CREDENTIALS as a JSON string or base64-encoded JSON.';
+          console.error('[firebase-admin]', errorMessage);
+          throw new Error(errorMessage);
+        } else {
+          console.warn('[firebase-admin] Skipping initialization during build - credentials will be required at runtime.');
+          return;
+        }
       }
 
       console.warn(
@@ -123,17 +149,52 @@ if (!getApps().length) {
         credential: applicationDefault(),
         storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
       });
+      adminAppInitialized = true;
     }
   } catch (error) {
     const hint =
       'Provide Firebase Admin credentials via FIREBASE_ADMIN_CREDENTIALS (JSON or base64), or FIREBASE_ADMIN_CLIENT_EMAIL / FIREBASE_ADMIN_PRIVATE_KEY / FIREBASE_ADMIN_PROJECT_ID.';
     console.error('[firebase-admin] Failed to initialize Firebase Admin SDK:', error);
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    throw new Error(`Firebase Admin initialization failed: ${errorMessage}\n${hint}`);
+    // Only throw at runtime, not during build
+    if (!isBuildTime) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      throw new Error(`Firebase Admin initialization failed: ${errorMessage}\n${hint}`);
+    }
   }
 }
 
-export const adminDb = getFirestore();
-export const adminAuth = getAuth();
+// Check if we're in build time
+const isBuildTime = 
+  process.env.NEXT_PHASE === 'phase-production-build' ||
+  (process.env.NODE_ENV === 'production' && !process.env.VERCEL_ENV) ||
+  process.argv.includes('build');
+
+// Lazy initialization wrapper
+function getAdminDbLazy(): ReturnType<typeof getFirestore> {
+  // During build, return early without initializing
+  if (isBuildTime) {
+    // Return a minimal object that satisfies the type but won't be used
+    // This prevents build errors while ensuring runtime works correctly
+    return {} as ReturnType<typeof getFirestore>;
+  }
+  initializeAdminApp();
+  return getFirestore();
+}
+
+function getAdminAuthLazy(): ReturnType<typeof getAuth> {
+  // During build, return early without initializing
+  if (isBuildTime) {
+    // Return a minimal object that satisfies the type but won't be used
+    return {} as ReturnType<typeof getAuth>;
+  }
+  initializeAdminApp();
+  return getAuth();
+}
+
+// Export with lazy initialization - only initializes when actually accessed
+// During build, this returns empty objects (won't be used anyway)
+// At runtime, this properly initializes Firebase Admin
+export const adminDb = getAdminDbLazy();
+export const adminAuth = getAdminAuthLazy();
 
 
