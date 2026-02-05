@@ -92,9 +92,12 @@ export function createPaymentDataForService(
   const formattedAmount = service.price.toFixed(2);
   
   return {
-    return_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard/payments/success`,
-    cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard/payments/cancel`,
-    notify_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/payfast/notify`,
+    // Customer flow: redirect to client-side redirect page for better referrer handling
+    // The client-side page can use sessionStorage and document.referrer for old links
+    return_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/payment-redirect`,
+    cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/payment-redirect`,
+    // No webhook by default for customer sales (platform webhook is for subscriptions)
+    notify_url: '',
     name_first: customer.firstName.trim(),
     name_last: customer.lastName.trim(),
     email_address: customer.email.trim(),

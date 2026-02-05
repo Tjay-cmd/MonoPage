@@ -1,6 +1,7 @@
 import { applicationDefault, cert, getApps, initializeApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getAuth } from 'firebase-admin/auth';
+import { getStorage } from 'firebase-admin/storage';
 
 type RequiredAdminConfig = {
   projectId: string;
@@ -83,7 +84,31 @@ function readEnvCredential(): RequiredAdminConfig | null {
 }
 
 function getAdminConfig(): RequiredAdminConfig | null {
-  return readJsonCredential() ?? readEnvCredential();
+  // Debug: Log what environment variables are available (without exposing sensitive data)
+  console.log('[firebase-admin] Checking for credentials...');
+  console.log('[firebase-admin] FIREBASE_ADMIN_CREDENTIALS exists:', !!process.env.FIREBASE_ADMIN_CREDENTIALS);
+  console.log('[firebase-admin] FIREBASE_ADMIN_PROJECT_ID:', process.env.FIREBASE_ADMIN_PROJECT_ID || '(not set)');
+  console.log('[firebase-admin] FIREBASE_ADMIN_CLIENT_EMAIL exists:', !!process.env.FIREBASE_ADMIN_CLIENT_EMAIL);
+  console.log('[firebase-admin] FIREBASE_ADMIN_PRIVATE_KEY exists:', !!process.env.FIREBASE_ADMIN_PRIVATE_KEY);
+  console.log('[firebase-admin] NEXT_PUBLIC_FIREBASE_PROJECT_ID:', process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || '(not set)');
+  console.log('[firebase-admin] VERCEL:', !!process.env.VERCEL);
+  console.log('[firebase-admin] VERCEL_ENV:', process.env.VERCEL_ENV || '(not set)');
+  console.log('[firebase-admin] NODE_ENV:', process.env.NODE_ENV || '(not set)');
+  
+  const jsonCred = readJsonCredential();
+  if (jsonCred) {
+    console.log('[firebase-admin] Found credentials from JSON');
+    return jsonCred;
+  }
+  
+  const envCred = readEnvCredential();
+  if (envCred) {
+    console.log('[firebase-admin] Found credentials from individual env vars');
+    return envCred;
+  }
+  
+  console.warn('[firebase-admin] No credentials found from any source');
+  return null;
 }
 
 // Helper to check if we're in build time (check dynamically, not just once)
@@ -172,6 +197,7 @@ function initializeAdminApp() {
 // Lazy getters - only initialize when actually accessed at runtime
 let _adminDb: ReturnType<typeof getFirestore> | null = null;
 let _adminAuth: ReturnType<typeof getAuth> | null = null;
+let _adminStorage: ReturnType<typeof getStorage> | null = null;
 
 function getAdminDbLazy(): ReturnType<typeof getFirestore> {
   // During build, return early without initializing
@@ -204,10 +230,23 @@ function getAdminAuthLazy(): ReturnType<typeof getAuth> {
   return _adminAuth;
 }
 
+function getAdminStorageLazy(): ReturnType<typeof getStorage> {
+  if (isBuildTimeCheck()) {
+    return {} as ReturnType<typeof getStorage>;
+  }
+  
+  if (!_adminStorage) {
+    initializeAdminApp();
+    _adminStorage = getStorage();
+  }
+  return _adminStorage;
+}
+
 // Export with lazy initialization - only initializes when actually accessed
 // During build, this returns empty objects (won't be used anyway)
 // At runtime, this properly initializes Firebase Admin
 export const adminDb = getAdminDbLazy();
 export const adminAuth = getAdminAuthLazy();
+export const adminStorage = getAdminStorageLazy();
 
 

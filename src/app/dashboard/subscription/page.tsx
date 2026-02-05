@@ -23,7 +23,6 @@ export default function SubscriptionPage() {
   const { user, subscription, loading, hasTierAccess, canAccessFeature } = useSubscription();
   const router = useRouter();
   const [upgrading, setUpgrading] = useState<SubscriptionTier | null>(null);
-  const [testingAuth, setTestingAuth] = useState(false);
 
   const handleUpgrade = async (tier: SubscriptionTier) => {
     if (!user) return;
@@ -98,50 +97,12 @@ export default function SubscriptionPage() {
     }
   };
 
-  const testAuthentication = async () => {
-    if (!user) return;
-
-    setTestingAuth(true);
-    try {
-      console.log('🧪 Testing authentication...');
-
-      const token = await user.getIdToken(true);
-      console.log('✅ Got fresh token, length:', token.length);
-
-      const response = await fetch('/api/test-auth', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          testData: 'Hello from client!',
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-        console.error('❌ Auth test failed:', response.status, errorData);
-        throw new Error(`Auth test failed: ${errorData.error || response.statusText}`);
-      }
-
-      const data = await response.json();
-      console.log('✅ Auth test successful:', data);
-
-      alert(`Authentication test passed! User: ${data.email}`);
-    } catch (error) {
-      console.error('❌ Auth test error:', error);
-      alert(`Authentication test failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    } finally {
-      setTestingAuth(false);
-    }
-  };
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading subscription...</p>
         </div>
       </div>
@@ -164,10 +125,10 @@ export default function SubscriptionPage() {
 
   const tierColors = {
     free: 'gray',
-    starter: 'green',
-    pro: 'blue',
-    business: 'purple',
-    premium: 'gold',
+    starter: 'orange',
+    pro: 'orange',
+    business: 'orange',
+    premium: 'orange',
   };
 
   const plans = [
@@ -177,18 +138,16 @@ export default function SubscriptionPage() {
       price: 'R50',
       period: 'per month',
       icon: Zap,
-      color: 'green',
-      description: 'Enhanced features for growing businesses',
+      color: 'orange',
+      description: 'Perfect for getting started',
       features: [
-        '3 websites',
-        'Advanced editor',
-        '500MB storage',
-        'Custom domain',
-        'Advanced forms',
-        'Basic templates',
+        '1 published website',
+        'Free starter templates only',
+        'Basic editor access',
+        'Save & design drafts',
       ],
       limitations: [
-        'Limited templates',
+        'Limited to free templates',
       ],
     },
     {
@@ -197,17 +156,16 @@ export default function SubscriptionPage() {
       price: 'R100',
       period: 'per month',
       icon: Star,
-      color: 'blue',
+      color: 'orange',
       description: 'Professional one-page websites',
       features: [
-        '3 websites',
-        'All one-page templates',
-        'PayFast integration',
+        '1 published website',
+        'Pro tier templates access',
+        'Service creation & management',
+        'PayFast payment integration',
         'Advanced editor',
-        'Custom domain',
-        '1GB storage',
-        'SEO tools',
-        'Analytics',
+        'Multiple saved drafts',
+        'Custom domain support',
       ],
       popular: true,
     },
@@ -217,16 +175,16 @@ export default function SubscriptionPage() {
       price: 'R250',
       period: 'per month',
       icon: Building,
-      color: 'purple',
-      description: 'Advanced one-page with business tools',
+      color: 'orange',
+      description: 'Advanced features for growing businesses',
       features: [
-        '10 websites',
-        'All templates',
-        'Advanced PayFast features',
+        '1 published website',
+        'All template access',
+        'Everything in Pro',
         'Booking/appointment system',
-        'Customer management',
-        'Email marketing',
-        '5GB storage',
+        'File management tools',
+        'Niche-specific features',
+        'Easy feature integration',
         'Priority support',
       ],
     },
@@ -236,17 +194,16 @@ export default function SubscriptionPage() {
       price: 'R500',
       period: 'per month',
       icon: Crown,
-      color: 'gold',
-      description: 'Full multi-page business platform',
+      color: 'orange',
+      description: 'Full-featured multi-page platform',
       features: [
-        'Unlimited websites',
-        'Multi-page websites',
-        'Full e-commerce',
-        'Team collaboration',
-        'Advanced analytics',
-        'API access',
-        '20GB storage',
-        'White-label options',
+        '1 published website',
+        'Multi-page website builder',
+        'Everything in Business',
+        'Email marketing tools',
+        'Full website design templates',
+        'Convert to multi-page',
+        'Advanced customization',
         'Dedicated support',
       ],
     },
@@ -276,10 +233,7 @@ export default function SubscriptionPage() {
             <div className="flex items-center space-x-4">
               <div className={`px-4 py-2 rounded-full text-sm font-medium ${
                 currentTier === 'free' ? 'bg-gray-100 text-gray-800' :
-                currentTier === 'starter' ? 'bg-green-100 text-green-800' :
-                currentTier === 'pro' ? 'bg-blue-100 text-blue-800' :
-                currentTier === 'business' ? 'bg-purple-100 text-purple-800' :
-                'bg-yellow-100 text-yellow-800'
+                'bg-orange-100 text-orange-800'
               }`}>
                 <div className="flex items-center">
                   {React.createElement(tierIcons[currentTier] || Globe, { className: 'h-4 w-4 mr-2' })}
@@ -303,22 +257,20 @@ export default function SubscriptionPage() {
               <div
                 key={plan.id}
                 className={`relative bg-white rounded-xl shadow-sm border-2 ${
-                  isCurrentPlan ? 'border-blue-500 ring-2 ring-blue-200' :
-                  plan.popular ? 'border-purple-300' : 'border-gray-200'
-                } overflow-hidden`}
+                  isCurrentPlan ? 'border-orange-500 ring-2 ring-orange-200' :
+                  plan.popular ? 'border-orange-300' : 'border-gray-200'
+                } overflow-hidden flex flex-col`}
               >
                 {plan.popular && (
-                  <div className="absolute top-0 right-0 bg-purple-500 text-white px-3 py-1 text-xs font-medium rounded-bl-lg">
+                  <div className="absolute top-0 right-0 bg-orange-600 text-white px-3 py-1 text-xs font-medium rounded-bl-lg">
                     Most Popular
                   </div>
                 )}
 
-                <div className="p-6">
+                <div className="p-6 flex flex-col flex-1">
                   <div className="flex items-center mb-4">
                     <Icon className={`h-8 w-8 ${
-                      plan.color === 'blue' ? 'text-blue-600' :
-                      plan.color === 'purple' ? 'text-purple-600' :
-                      plan.color === 'gold' ? 'text-yellow-600' :
+                      plan.color === 'orange' ? 'text-orange-600' :
                       'text-gray-600'
                     }`} />
                     <h3 className="ml-3 text-xl font-bold text-gray-900">{plan.name}</h3>
@@ -332,10 +284,10 @@ export default function SubscriptionPage() {
                     <p className="text-gray-600 text-sm mt-1">{plan.description}</p>
                   </div>
 
-                  <ul className="space-y-3 mb-6">
+                  <ul className="space-y-3 mb-6 flex-grow">
                     {plan.features.map((feature, index) => (
                       <li key={index} className="flex items-start">
-                        <CheckCircle className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
+                        <CheckCircle className="h-5 w-5 text-orange-600 mr-2 flex-shrink-0 mt-0.5" />
                         <span className="text-gray-700 text-sm">{feature}</span>
                       </li>
                     ))}
@@ -352,11 +304,11 @@ export default function SubscriptionPage() {
                     </div>
                   )}
 
-                  <div className="space-y-3">
+                  <div className="mt-auto">
                     {isCurrentPlan ? (
                       <button
                         disabled
-                        className="w-full bg-gray-100 text-gray-500 py-3 px-4 rounded-lg font-medium cursor-not-allowed"
+                        className="w-full bg-gray-100 text-gray-500 py-3 px-4 rounded-xl font-medium cursor-not-allowed h-[48px] flex items-center justify-center"
                       >
                         Current Plan
                       </button>
@@ -364,12 +316,7 @@ export default function SubscriptionPage() {
                       <button
                         onClick={() => handleUpgrade(plan.id)}
                         disabled={upgrading === plan.id}
-                        className={`w-full py-3 px-4 rounded-lg font-medium transition-colors ${
-                          plan.color === 'blue' ? 'bg-blue-600 hover:bg-blue-700 text-white' :
-                          plan.color === 'purple' ? 'bg-purple-600 hover:bg-purple-700 text-white' :
-                          plan.color === 'gold' ? 'bg-yellow-500 hover:bg-yellow-600 text-white' :
-                          'bg-gray-600 hover:bg-gray-700 text-white'
-                        } disabled:opacity-50 disabled:cursor-not-allowed`}
+                        className="w-full bg-gray-900 hover:bg-gray-800 text-white py-3 px-4 rounded-xl font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed h-[48px] flex items-center justify-center"
                       >
                         {upgrading === plan.id ? (
                           <div className="flex items-center justify-center">
@@ -384,8 +331,8 @@ export default function SubscriptionPage() {
                         )}
                       </button>
                     ) : (
-                      <div className="text-center">
-                        <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 mb-2">
+                      <div className="text-center h-[48px] flex flex-col items-center justify-center">
+                        <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800 mb-2">
                           <Zap className="h-3 w-3 mr-1" />
                           Achievement Required
                         </div>
@@ -407,19 +354,13 @@ export default function SubscriptionPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="flex items-center space-x-3">
               <div className={`p-2 rounded-lg ${
-                currentTier === 'starter' ? 'bg-green-100' :
-                currentTier === 'pro' ? 'bg-blue-100' :
-                currentTier === 'business' ? 'bg-purple-100' :
-                currentTier === 'premium' ? 'bg-yellow-100' :
-                'bg-gray-100'
+                currentTier === 'free' ? 'bg-gray-100' :
+                'bg-orange-100'
               }`}>
                 {React.createElement(tierIcons[currentTier] || Globe, {
                   className: `h-6 w-6 ${
-                    currentTier === 'starter' ? 'text-green-600' :
-                    currentTier === 'pro' ? 'text-blue-600' :
-                    currentTier === 'business' ? 'text-purple-600' :
-                    currentTier === 'premium' ? 'text-yellow-600' :
-                    'text-gray-600'
+                    currentTier === 'free' ? 'text-gray-600' :
+                    'text-orange-600'
                   }`
                 })}
               </div>
@@ -436,7 +377,7 @@ export default function SubscriptionPage() {
             </div>
 
             <div className="flex items-center space-x-3">
-              <Shield className="h-6 w-6 text-green-600" />
+              <Shield className="h-6 w-6 text-orange-600" />
               <div>
                 <p className="font-medium text-gray-900">Status</p>
                 <p className="text-sm text-gray-600 capitalize">{subscription?.status || 'Active'}</p>
@@ -444,7 +385,7 @@ export default function SubscriptionPage() {
             </div>
 
             <div className="flex items-center space-x-3">
-              <BarChart3 className="h-6 w-6 text-blue-600" />
+              <BarChart3 className="h-6 w-6 text-orange-600" />
               <div>
                 <p className="font-medium text-gray-900">Member Since</p>
                 <p className="text-sm text-gray-600">
@@ -453,29 +394,6 @@ export default function SubscriptionPage() {
               </div>
             </div>
           </div>
-        </div>
-
-        {/* Debug Actions */}
-        <div className="mt-8 bg-gray-50 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Debug Tools</h3>
-          <div className="flex flex-wrap gap-4">
-            <button
-              onClick={testAuthentication}
-              disabled={testingAuth}
-              className="btn-secondary"
-            >
-              {testingAuth ? 'Testing Auth...' : 'Test Authentication'}
-            </button>
-            <button
-              onClick={() => window.location.reload()}
-              className="btn-secondary"
-            >
-              Refresh Page
-            </button>
-          </div>
-          <p className="text-sm text-gray-600 mt-2">
-            Use these tools to debug authentication and payment issues.
-          </p>
         </div>
       </div>
     </div>

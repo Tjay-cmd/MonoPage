@@ -16,9 +16,25 @@ import gjsBlocksBasic from 'grapesjs-blocks-basic';
 import grapesjsTuiImageEditor from 'grapesjs-tui-image-editor';
 import 'tui-image-editor/dist/tui-image-editor.css';
 import { useSubscription } from '@/hooks/useSubscription';
+import { ArrowLeft, Eye, Link2, Download, Save, Calendar, GraduationCap, X, Check } from 'lucide-react';
+import { registerClassOrbitBlock } from '@/lib/grapesjs/registerClassOrbitBlock';
+import { BusinessType } from '@/types';
 
 // NOTE: We now use Firebase Authentication user.uid instead of localStorage
 // This ensures consistency across all pages (editor, websites page, etc.)
+
+// Payment Link types (client-side only, non-breaking for existing generator)
+type LinkType = 'customer_payment' | 'platform_subscription';
+interface PaymentLinkRecord {
+  id: string;
+  url: string;
+  ownerUserId: string;
+  websiteId?: string | null;
+  type: LinkType;
+  status?: 'active' | 'disabled';
+  returnUrl?: string;
+  label?: string;
+}
 
 export default function TemplateEditorPage() {
   const params = useParams();
@@ -32,17 +48,38 @@ export default function TemplateEditorPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [websiteId, setWebsiteId] = useState<string | null>(null);
   const [websiteName, setWebsiteName] = useState<string>('');
+  const [publishedUrl, setPublishedUrl] = useState<string | null>(null);
   const [isNewWebsite, setIsNewWebsite] = useState(true);
   const [templateId, setTemplateId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [previewImageFile, setPreviewImageFile] = useState<File | null>(null);
   const [previewImagePreview, setPreviewImagePreview] = useState<string | null>(null);
+  // Link picker state
+  const [userLinks, setUserLinks] = useState<PaymentLinkRecord[]>([]);
+  const [linksLoading, setLinksLoading] = useState(false);
+  const [isLinkPickerOpen, setIsLinkPickerOpen] = useState(false);
+  const [showAllUserLinks, setShowAllUserLinks] = useState(false);
+  const [linkSearch, setLinkSearch] = useState('');
+  const [showThankYouHelper, setShowThankYouHelper] = useState(false);
 
   const { subscription, loading: subscriptionLoading, hasTierAccess } = useSubscription();
   const canEditTemplates = hasTierAccess('pro');
+  const hasBusinessAccess = hasTierAccess('business');
+  const [showCalendarModal, setShowCalendarModal] = useState(false);
+  
+  // Tutor classes state
+  const [isTutor, setIsTutor] = useState(false);
+  const [tutorClasses, setTutorClasses] = useState<any[]>([]);
+  const [showClassesModal, setShowClassesModal] = useState(false);
+  const [selectedClassIds, setSelectedClassIds] = useState<string[]>([]);
 
   useEffect(() => {
-    if (!subscriptionLoading && !canEditTemplates) {
+    // Don't redirect if we're opening preview after payment (openPreview=true)
+    // This allows the redirect to work even if subscription check hasn't completed
+    const urlParams = new URLSearchParams(window.location.search);
+    const isOpeningPreview = urlParams.get('openPreview') === 'true';
+    
+    if (!subscriptionLoading && !canEditTemplates && !isOpeningPreview) {
       router.replace('/dashboard/templates');
     }
   }, [subscriptionLoading, canEditTemplates, router]);
@@ -216,6 +253,58 @@ export default function TemplateEditorPage() {
     
     return () => unsubscribe();
   }, [router]);
+
+  // Auto-open preview after payment redirect (when editor and website are ready)
+  useEffect(() => {
+    if (!editor) return;
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    const shouldOpenPreview = urlParams.get('openPreview') === 'true';
+    
+    if (shouldOpenPreview) {
+      console.log('🔄 Auto-opening preview after payment redirect...');
+      console.log('📊 Editor state:', { editor: !!editor, websiteId, isNewWebsite, templateData: !!templateData });
+      
+      // Wait for website to load if it's an existing website
+      const waitForWebsite = async () => {
+        let attempts = 0;
+        const maxAttempts = 20; // 10 seconds max wait
+        
+        while (attempts < maxAttempts) {
+          // If it's a new website, we can open preview immediately (after template loads)
+          if (isNewWebsite && templateData) {
+            console.log('✅ New website with template loaded, opening preview');
+            break;
+          }
+          
+          // If it's an existing website, wait for template data to load
+          if (!isNewWebsite && websiteId && templateData) {
+            console.log('✅ Existing website loaded, opening preview');
+            break;
+          }
+          
+          console.log(`⏳ Waiting for website/template to load... (attempt ${attempts + 1}/${maxAttempts})`, {
+            isNewWebsite,
+            websiteId,
+            hasTemplate: !!templateData
+          });
+          await new Promise(resolve => setTimeout(resolve, 500));
+          attempts++;
+        }
+        
+        // Open preview
+        console.log('🚀 Opening preview window...');
+        handlePreview();
+        // Clean up URL param
+        const newUrl = new URL(window.location.href);
+        newUrl.searchParams.delete('openPreview');
+        window.history.replaceState({}, '', newUrl.toString());
+      };
+      
+      // Start waiting after a short delay to let things initialize
+      setTimeout(waitForWebsite, 500);
+    }
+  }, [editor, websiteId, isNewWebsite, templateData]);
 
   // Get template ID from params
   useEffect(() => {
@@ -516,6 +605,45 @@ export default function TemplateEditorPage() {
       },
     });
 
+    // Booking Calendar Component (Business Tier Only)
+    newEditor.DomComponents.addType('booking-calendar', {
+      isComponent: (el: any) => el.classList && el.classList.contains('booking-calendar-container'),
+      model: {
+        defaults: {
+          tagName: 'div',
+          classes: ['booking-calendar-container'],
+          traits: [
+            {
+              type: 'text',
+              label: 'Title',
+              name: 'title',
+              changeProp: true,
+            },
+            {
+              type: 'text',
+              label: 'Subtitle',
+              name: 'subtitle',
+              changeProp: true,
+            },
+          ],
+        },
+      },
+      view: {
+        onRender() {
+          // Update content when traits change
+          const comp = this.model;
+          comp.on('change:title', () => {
+            const titleEl = this.el.querySelector('h2');
+            if (titleEl) titleEl.textContent = comp.get('title') || 'Book an Appointment';
+          });
+          comp.on('change:subtitle', () => {
+            const subtitleEl = this.el.querySelector('p');
+            if (subtitleEl) subtitleEl.textContent = comp.get('subtitle') || 'Select a date and time that works for you';
+          });
+        },
+      },
+    });
+
     // Enhanced link component
     newEditor.DomComponents.addType('link', {
       isComponent: (el: any) => el.tagName === 'A',
@@ -810,6 +938,36 @@ export default function TemplateEditorPage() {
             
             editor.loadProjectData(projectData);
             console.log('✅ GrapesJS template loaded successfully!');
+            
+            // Inject CSS if stored separately in projectData.css (for templates converted from HTML)
+            if (projectData.css && typeof projectData.css === 'string') {
+              console.log('🎨 Injecting CSS from projectData.css...');
+              
+              // Wait for canvas frame to be ready
+              setTimeout(() => {
+                try {
+                  const canvasDoc = editor.Canvas.getDocument();
+                  if (canvasDoc) {
+                    // Remove any existing template CSS
+                    const existingStyle = canvasDoc.getElementById('template-base-css');
+                    if (existingStyle) existingStyle.remove();
+                    
+                    // Inject CSS into canvas head
+                    const styleEl = canvasDoc.createElement('style');
+                    styleEl.id = 'template-base-css';
+                    styleEl.setAttribute('data-gjs', 'external');
+                    styleEl.textContent = projectData.css;
+                    
+                    if (canvasDoc.head) {
+                      canvasDoc.head.appendChild(styleEl);
+                      console.log('✅ CSS injected into canvas');
+                    }
+                  }
+                } catch (cssError) {
+                  console.warn('⚠️ Could not inject CSS:', cssError);
+                }
+              }, 500);
+            }
           } catch (error) {
             console.error('❌ Error loading GrapesJS template:', error);
           }
@@ -1158,14 +1316,58 @@ export default function TemplateEditorPage() {
         const navScript = `
           <script>
             document.addEventListener('DOMContentLoaded', function() {
+              // Store current page URL as referrer for payment redirects (works for old links!)
+              // Use localStorage (shared across tabs) so PayFast redirect can access it
+              var currentPageUrl = window.location.href;
+              
+              function storeReferrer() {
+                try {
+                  localStorage.setItem('payment_referrer', currentPageUrl);
+                  sessionStorage.setItem('payment_referrer', currentPageUrl);
+                } catch(e) {
+                  console.warn('Could not store referrer:', e);
+                }
+              }
+              
+              // Store immediately
+              storeReferrer();
+              
               // Handle buttons with href attribute (from our custom traits)
-              document.querySelectorAll('button[data-href]').forEach(function(btn) {
+              document.querySelectorAll('button[data-href], a.payment-link, button.payment-button').forEach(function(btn) {
                 btn.addEventListener('click', function(e) {
-                  e.preventDefault();
-                  var href = this.getAttribute('data-href');
-                  if (href) {
-                    window.location.href = href;
+                  var href = btn.getAttribute('data-href') || btn.getAttribute('href');
+                  
+                  // If it's a PayFast payment link, store referrer before navigating
+                  if (href && (href.includes('payfast.co.za') || btn.classList.contains('payment-link') || btn.classList.contains('payment-button'))) {
+                    storeReferrer();
+                    
+                    // Also try to add referrer to URL as query param (for old links)
+                    try {
+                      var url = new URL(href);
+                      if (!url.searchParams.has('custom_str4')) {
+                        url.searchParams.set('custom_str4', currentPageUrl);
+                        if (btn.hasAttribute('data-href')) {
+                          btn.setAttribute('data-href', url.toString());
+                          href = url.toString();
+                        } else {
+                          btn.setAttribute('href', url.toString());
+                          href = url.toString();
+                        }
+                        console.log('✅ Added referrer to PayFast URL:', url.toString());
+                      }
+                    } catch(e) {
+                      console.warn('Could not modify PayFast URL:', e);
+                    }
                   }
+                  
+                  // For buttons with data-href, prevent default and navigate
+                  if (btn.hasAttribute('data-href')) {
+                    e.preventDefault();
+                    if (href) {
+                      window.location.href = href;
+                    }
+                  }
+                  // For links, let them navigate normally (they'll open in new tab with target="_blank")
                 });
               });
             });
@@ -1199,6 +1401,7 @@ export default function TemplateEditorPage() {
         const data = websiteDoc.data();
         setWebsiteId(websiteIdParam);
         setWebsiteName(data.websiteName || '');
+        setPublishedUrl(data.publishedUrl || null);
         setIsNewWebsite(false);
         console.log('✅ Website loaded:', data.websiteName);
         
@@ -1419,56 +1622,102 @@ export default function TemplateEditorPage() {
     }
   };
 
-  // Capture screenshot from the editor canvas
-  const handleCaptureScreenshot = async () => {
+  // Helper: Capture screenshot silently (without prompts) - returns File or null
+  const captureScreenshotSilently = async (): Promise<File | null> => {
     try {
       if (!editor) {
-        alert('Editor not ready. Please wait a moment and try again.');
-        return;
+        console.warn('⚠️ Editor not ready for screenshot');
+        return null;
       }
 
       // Find the GrapesJS canvas/frame element
       const canvasFrame = editor.Canvas.getFrameEl();
       if (!canvasFrame) {
-        alert('Unable to find editor canvas. Please try again.');
-        return;
+        console.warn('⚠️ Unable to find editor canvas');
+        return null;
       }
 
       // Get the iframe content
       const iframe = canvasFrame.contentDocument || canvasFrame.contentWindow?.document;
       if (!iframe) {
-        alert('Unable to access editor content. Please try again.');
-        return;
+        console.warn('⚠️ Unable to access editor content');
+        return null;
       }
 
       // Wait a moment for any dynamic content to render
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 800));
       
-      // Capture screenshot of the iframe body (top 600px - header area)
+      // Get the actual dimensions of the content
+      const contentWidth = iframe.body.scrollWidth || 1200;
+      const contentHeight = iframe.body.scrollHeight || 800;
+      
+      // Use a standard 16:9 aspect ratio (1920x1080) for website previews
+      // This is a common aspect ratio that looks good in cards
+      const standardWidth = 1920;
+      const standardHeight = 1080; // 16:9 ratio
+      
+      // Use standard dimensions, but don't exceed content dimensions
+      const targetWidth = Math.min(contentWidth, standardWidth);
+      // For height, capture as much as possible up to standard height, but maintain 16:9 ratio
+      const maxHeight = Math.min(contentHeight, standardHeight);
+      const targetHeight = Math.min(maxHeight, Math.round(targetWidth * (9/16)));
+      
+      console.log('📸 Capturing screenshot:', {
+        contentWidth,
+        contentHeight,
+        targetWidth,
+        targetHeight,
+        aspectRatio: `${targetWidth}:${targetHeight}`,
+        ratio: (targetWidth / targetHeight).toFixed(2)
+      });
+      
+      // Capture screenshot with proper dimensions
+      // Use the full width and capture from top of page
       const canvas = await html2canvas(iframe.body, {
-        width: iframe.body.scrollWidth || 1200,
-        height: 600, // Capture top portion (header area)
+        width: targetWidth,
+        height: targetHeight,
         scrollX: 0,
         scrollY: 0,
         useCORS: true,
         logging: false,
-        windowWidth: 1200,
-        windowHeight: 600,
+        windowWidth: targetWidth,
+        windowHeight: targetHeight,
+        scale: 1, // Use 1:1 scale for better quality
+        backgroundColor: '#ffffff', // White background for better display
+        allowTaint: false,
+        removeContainer: false,
       });
 
-      // Convert canvas to blob
-      canvas.toBlob(async (blob) => {
+      // Convert canvas to blob and return as File
+      return new Promise((resolve) => {
+        canvas.toBlob((blob) => {
         if (!blob) {
-          alert('Failed to capture screenshot');
+            console.warn('⚠️ Failed to convert canvas to blob');
+            resolve(null);
+            return;
+          }
+          const file = new File([blob], 'preview.png', { type: 'image/png' });
+          console.log('✅ Screenshot captured silently');
+          resolve(file);
+        }, 'image/png');
+      });
+    } catch (error) {
+      console.error('❌ Error capturing screenshot silently:', error);
+      return null;
+    }
+  };
+
+  // Capture screenshot from the editor canvas (manual button - with prompts)
+  const handleCaptureScreenshot = async () => {
+    const file = await captureScreenshotSilently();
+    if (!file) {
+      alert('Failed to capture screenshot. Please try again.');
           return;
         }
 
         // Show preview and ask to save
-        const imageUrl = URL.createObjectURL(blob);
+    const imageUrl = URL.createObjectURL(file);
         setPreviewImagePreview(imageUrl);
-        
-        // Convert blob to File
-        const file = new File([blob], 'preview.png', { type: 'image/png' });
         setPreviewImageFile(file);
 
         // Ask user if they want to save
@@ -1476,7 +1725,7 @@ export default function TemplateEditorPage() {
         
         if (savePreview && websiteId) {
           // Auto-save if website already exists
-          const previewUrl = await uploadPreviewImage(websiteId);
+      const previewUrl = await uploadPreviewImage(websiteId, file);
           if (previewUrl) {
             const websiteDocRef = doc(db, 'user_websites', websiteId);
             await updateDoc(websiteDocRef, {
@@ -1496,11 +1745,6 @@ export default function TemplateEditorPage() {
           setPreviewImageFile(null);
           setPreviewImagePreview(null);
           URL.revokeObjectURL(imageUrl); // Clean up
-        }
-      }, 'image/png');
-    } catch (error) {
-      console.error('Error capturing screenshot:', error);
-      alert('Failed to capture screenshot. Please try again.');
     }
   };
 
@@ -1530,7 +1774,7 @@ export default function TemplateEditorPage() {
     if (websiteId) {
       const saveNow = confirm('Image selected! Do you want to save this as your preview image now?');
       if (saveNow) {
-        const previewUrl = await uploadPreviewImage(websiteId);
+        const previewUrl = await uploadPreviewImage(websiteId, file);
         if (previewUrl) {
           const websiteDocRef = doc(db, 'user_websites', websiteId);
           await updateDoc(websiteDocRef, {
@@ -1551,14 +1795,16 @@ export default function TemplateEditorPage() {
   };
 
   // Upload preview image to Firebase Storage
-  const uploadPreviewImage = async (websiteId: string): Promise<string | null> => {
-    if (!previewImageFile) return null;
+  const uploadPreviewImage = async (websiteId: string, file?: File | null): Promise<string | null> => {
+    // Use provided file or fall back to state
+    const fileToUpload = file ?? previewImageFile;
+    if (!fileToUpload) return null;
 
     try {
       console.log('📤 Uploading preview image...');
       const storageRef_instance = storageRef(storage, `website-previews/${websiteId}.png`);
-      await uploadBytes(storageRef_instance, previewImageFile, {
-        contentType: previewImageFile.type || 'image/png',
+      await uploadBytes(storageRef_instance, fileToUpload, {
+        contentType: fileToUpload.type || 'image/png',
       });
 
       const downloadURL = await getDownloadURL(storageRef_instance);
@@ -1576,6 +1822,18 @@ export default function TemplateEditorPage() {
       console.error('❌ Cannot save: editor, userId, or templateId missing');
       alert('❌ Cannot save: Missing required data. Please refresh and try again.');
       return;
+    }
+
+    // Step 1: Prompt for website name if not set
+    let finalWebsiteName = websiteName.trim();
+    if (!finalWebsiteName) {
+      const nameInput = prompt('Enter a name for your website:', templateData?.name || 'My Website');
+      if (nameInput === null) {
+        // User cancelled
+        return;
+      }
+      finalWebsiteName = nameInput.trim() || `${templateData?.name || 'Website'} - ${new Date().toLocaleDateString()}`;
+      setWebsiteName(finalWebsiteName);
     }
 
     try {
@@ -1806,7 +2064,7 @@ export default function TemplateEditorPage() {
         userId,
         templateId,
         templateName: templateData?.name || 'Unnamed Template',
-        websiteName: websiteName || `${templateData?.name || 'Website'} - ${new Date().toLocaleDateString()}`,
+        websiteName: finalWebsiteName,
         
         // Save rendered versions (with Firebase Storage image URLs)
         savedHtml: html,
@@ -1855,21 +2113,41 @@ export default function TemplateEditorPage() {
 
       console.log('✅ Website saved successfully!');
       
-      // Upload preview image if one was selected
+      // Step 2: Handle preview image
+      let previewUrl: string | null = null;
+      
+      // If user already selected/captured a preview image, use it
       if (previewImageFile) {
-        const previewUrl = await uploadPreviewImage(saveWebsiteId);
+        console.log('📸 Uploading user-selected preview image...');
+        previewUrl = await uploadPreviewImage(saveWebsiteId, previewImageFile);
+      } else {
+        // Step 3: Auto-capture screenshot if no preview exists
+        console.log('📸 No preview image found, auto-capturing screenshot...');
+        const screenshotFile = await captureScreenshotSilently();
+        
+        if (screenshotFile) {
+          // Pass the file directly to uploadPreviewImage (no need to update state)
+          previewUrl = await uploadPreviewImage(saveWebsiteId, screenshotFile);
+          
         if (previewUrl) {
-          // Update the website document with the new preview URL
+            console.log('✅ Auto-captured preview image uploaded!');
+          }
+        } else {
+          console.warn('⚠️ Could not auto-capture screenshot');
+        }
+      }
+      
+      // Update website document with preview URL if we have one
+      if (previewUrl) {
           const { updateDoc } = await import('firebase/firestore');
           await updateDoc(websiteDocRef, {
             previewImageUrl: previewUrl,
             previewGeneratedAt: new Date(),
           });
-          console.log('✅ Preview image updated!');
-        }
+        console.log('✅ Preview image saved to website document!');
       }
       
-      alert(`✅ Website "${dataToSave.websiteName}" saved successfully!`);
+      alert(`✅ Website "${dataToSave.websiteName}" saved successfully!${previewUrl ? '\n\nPreview image has been automatically captured and saved.' : ''}`);
     } catch (error) {
       console.error('❌ Error saving website:', error);
       alert('❌ Failed to save website. Check console for details.');
@@ -1892,6 +2170,20 @@ export default function TemplateEditorPage() {
     // Get external JavaScript
     const templateJs = templateData?.js || '';
     
+    // Get current editor page URL to store as referrer for payment redirects
+    // This will be used to redirect back to the editor, which can then reopen preview
+    const editorPageUrl = new URL(window.location.href);
+    
+    // Ensure websiteId is in the URL if we have one (critical for loading existing website!)
+    if (websiteId) {
+      editorPageUrl.searchParams.set('websiteId', websiteId);
+    }
+    
+    const editorPageUrlString = editorPageUrl.toString();
+    
+    // Create a unique preview identifier
+    const previewId = `preview-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
     const fullHtml = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1903,6 +2195,251 @@ export default function TemplateEditorPage() {
 <body>
   ${html}
   ${templateJs ? `<script>${templateJs}</script>` : ''}
+  <script>
+    // Store preview referrer for payment redirects
+    // Since preview window doesn't have a real URL, we store the editor URL
+    // and mark it as a preview so redirect page knows to reopen preview
+    (function() {
+      var editorPageUrl = '${editorPageUrlString}';
+      var previewId = '${previewId}';
+      var websiteId = '${websiteId || ''}';
+      var previewData = {
+        editorUrl: editorPageUrl,
+        previewId: previewId,
+        websiteId: websiteId,
+        isPreview: true,
+        timestamp: Date.now()
+      };
+      
+      // Store preview data in localStorage (shared across tabs)
+      function storePreviewReferrer() {
+        try {
+          var previewDataStr = JSON.stringify(previewData);
+          localStorage.setItem('payment_referrer', previewDataStr);
+          localStorage.setItem('preview_data', previewDataStr); // Backup
+          sessionStorage.setItem('payment_referrer', previewDataStr);
+          console.log('✅ Stored preview referrer for payment redirect:', previewData);
+        } catch(e) {
+          console.warn('Could not store preview referrer:', e);
+        }
+      }
+      
+      // Store immediately
+      storePreviewReferrer();
+      
+      // Also store on page load/visibility change to ensure it's always set
+      document.addEventListener('DOMContentLoaded', storePreviewReferrer);
+      
+      // Store on visibility change (when tab becomes active)
+      document.addEventListener('visibilitychange', function() {
+        if (!document.hidden) {
+          storePreviewReferrer();
+        }
+      });
+      
+      // Handle payment link clicks to update referrer and modify URL
+      document.addEventListener('click', function(e) {
+        var target = e.target.closest('a[href*="payfast"], button[data-href*="payfast"], a.payment-link, button.payment-button');
+        if (target) {
+          var href = target.getAttribute('href') || target.getAttribute('data-href');
+          if (href && (href.includes('payfast.co.za') || target.classList.contains('payment-link') || target.classList.contains('payment-button'))) {
+            // Store preview referrer before navigation
+            storePreviewReferrer();
+            
+            // Also try to add referrer to URL as query param (for old links)
+            try {
+              var url = new URL(href);
+              if (!url.searchParams.has('custom_str4')) {
+                // Store preview data in URL as base64 encoded JSON
+                var previewDataEncoded = btoa(JSON.stringify(previewData));
+                url.searchParams.set('custom_str4', previewDataEncoded);
+                if (target.tagName === 'A') {
+                  target.setAttribute('href', url.toString());
+                } else {
+                  target.setAttribute('data-href', url.toString());
+                }
+                console.log('✅ Added preview referrer to PayFast URL');
+              }
+            } catch(e) {
+              console.warn('Could not modify PayFast URL:', e);
+            }
+          }
+        }
+      }, true); // Use capture phase to catch before navigation
+      
+      // Initialize booking calendars in preview with auto-refresh
+      (function() {
+        const calendarContainers = document.querySelectorAll('[data-calendar-user-id]');
+        calendarContainers.forEach(function(container) {
+          const userId = container.getAttribute('data-calendar-user-id');
+          if (userId) {
+            const calendarDiv = container.querySelector('[id^="booking-calendar-"]');
+            if (calendarDiv) {
+              // Check if iframe already exists
+              let iframe = calendarDiv.querySelector('iframe');
+              if (!iframe) {
+                iframe = document.createElement('iframe');
+                iframe.id = 'calendar-iframe-' + userId;
+                iframe.style.width = '100%';
+                iframe.style.border = 'none';
+                iframe.style.minHeight = '600px';
+                iframe.title = 'Booking Calendar';
+                calendarDiv.innerHTML = '';
+                calendarDiv.appendChild(iframe);
+              }
+              
+              // Set initial src with cache buster
+              iframe.src = window.location.origin + '/api/calendar/embed?userId=' + userId + '&_t=' + Date.now();
+              
+              // Auto-refresh calendar when settings change (only for saved websites)
+              // Check if we're previewing a saved website by checking for websiteId in URL
+              const urlParams = new URLSearchParams(window.location.search);
+              const websiteId = urlParams.get('websiteId');
+              
+              if (websiteId) {
+                let lastCheckTime = Date.now();
+                let checkInterval = setInterval(async function() {
+                  try {
+                    const response = await fetch(window.location.origin + '/api/calendar/settings?userId=' + userId + '&checkOnly=true');
+                    if (response.ok) {
+                      const data = await response.json();
+                      const currentTimestamp = data.lastUpdatedTimestamp || 0;
+                      
+                      // If settings were updated, reload the iframe
+                      if (currentTimestamp > lastCheckTime) {
+                        lastCheckTime = currentTimestamp;
+                        iframe.src = window.location.origin + '/api/calendar/embed?userId=' + userId + '&_t=' + Date.now();
+                        console.log('🔄 Calendar settings updated, reloading calendar...');
+                      }
+                    }
+                  } catch (error) {
+                    console.warn('Error checking calendar settings:', error);
+                  }
+                }, 5000); // Check every 5 seconds
+                
+                // Cleanup on page unload
+                window.addEventListener('beforeunload', function() {
+                  if (checkInterval) clearInterval(checkInterval);
+                });
+              }
+            }
+          }
+        });
+      })();
+      
+      // Initialize Classes Orbit Animation components in preview
+      (function() {
+        setTimeout(function() {
+          const orbitContainers = document.querySelectorAll('.class-orbit-container[data-class-ids]');
+          
+          orbitContainers.forEach(function(container) {
+            const classIds = container.getAttribute('data-class-ids');
+            const buttonColor = container.getAttribute('data-button-color') || '#f59e0b';
+            const animationSpeed = container.getAttribute('data-animation-speed') || 'normal';
+            const tutorId = '${userId || ''}';
+            
+            if (!classIds || !tutorId) return;
+            
+            // Load tutor classes
+            fetch(window.location.origin + '/api/tutor/classes/public?userId=' + tutorId)
+              .then(function(response) { return response.json(); })
+              .then(function(data) {
+                const allClasses = data.classes || [];
+                const selectedClassIds = classIds.split(',').filter(function(id) { return id.trim(); });
+                const selectedClasses = allClasses.filter(function(c) {
+                  return selectedClassIds.includes(c.id);
+                });
+                
+                if (selectedClasses.length === 0) {
+                  container.innerHTML = '<div style="padding: 2rem; text-align: center; color: #6b7280;">No classes available</div>';
+                  return;
+                }
+                
+                // Create orbit animation HTML
+                var orbitHtml = '<div class="class-orbit-wrapper" style="position: relative; width: 100%; overflow: hidden; height: 400px;">';
+                orbitHtml += '<div class="class-orbit-track" style="display: flex; gap: 24px; width: ' + (selectedClasses.length * 3 * 344) + 'px; animation: orbit-move-' + Date.now() + ' ' + (animationSpeed === 'slow' ? '30s' : animationSpeed === 'fast' ? '10s' : '20s') + ' linear infinite;">';
+                
+                // Clone classes 3 times for seamless loop
+                for (var i = 0; i < 3; i++) {
+                  selectedClasses.forEach(function(classItem) {
+                    orbitHtml += '<div class="class-card" style="flex-shrink: 0; width: 320px; height: 360px; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 16px rgba(0,0,0,0.15); position: relative; background: white;">';
+                    
+                    // Cover Image or Color Background
+                    if (classItem.coverImageUrl) {
+                      orbitHtml += '<div style="position: relative; width: 100%; height: 240px; overflow: hidden;">';
+                      orbitHtml += '<img src="' + classItem.coverImageUrl + '" alt="' + (classItem.name || 'Class') + '" style="width: 100%; height: 100%; object-fit: cover;" />';
+                      orbitHtml += '<div style="position: absolute; inset: 0; background: linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.7) 100%);"></div>';
+                      orbitHtml += '<div style="position: absolute; bottom: 0; left: 0; right: 0; padding: 1rem; color: white;">';
+                      orbitHtml += '<h3 style="font-size: 1.5rem; font-weight: bold; margin-bottom: 0.25rem; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">' + (classItem.name || 'Class') + '</h3>';
+                      if (classItem.description) {
+                        orbitHtml += '<p style="font-size: 0.875rem; opacity: 0.95; text-shadow: 0 1px 2px rgba(0,0,0,0.5); line-height: 1.4;">' + classItem.description + '</p>';
+                      }
+                      orbitHtml += '</div>';
+                      orbitHtml += '</div>';
+                      orbitHtml += '<div style="padding: 1rem; background: #f9fafb; height: 120px; display: flex; align-items: center; justify-content: center;">';
+                      orbitHtml += '<div style="text-align: center; color: #374151;">';
+                      orbitHtml += '<div style="font-size: 0.875rem; color: #6b7280;">Click to enroll</div>';
+                      orbitHtml += '</div>';
+                      orbitHtml += '</div>';
+                    } else {
+                      orbitHtml += '<div style="width: 100%; height: 240px; background: ' + (classItem.color || '#f59e0b') + '; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 1.5rem; color: white;">';
+                      orbitHtml += '<h3 style="font-size: 1.75rem; font-weight: bold; margin-bottom: 0.5rem; text-align: center;">' + (classItem.name || 'Class') + '</h3>';
+                      if (classItem.description) {
+                        orbitHtml += '<p style="font-size: 0.875rem; opacity: 0.9; text-align: center; line-height: 1.4;">' + classItem.description + '</p>';
+                      }
+                      orbitHtml += '</div>';
+                      orbitHtml += '<div style="padding: 1rem; background: rgba(255,255,255,0.1); height: 120px; display: flex; align-items: center; justify-content: center;">';
+                      orbitHtml += '<div style="text-align: center; color: white;">';
+                      orbitHtml += '<div style="font-size: 0.875rem; opacity: 0.9;">Click to enroll</div>';
+                      orbitHtml += '</div>';
+                      orbitHtml += '</div>';
+                    }
+                    
+                    orbitHtml += '</div>';
+                  });
+                }
+                
+                orbitHtml += '</div>';
+                orbitHtml += '<div class="class-orbit-overlay" style="position: absolute; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 10;">';
+                orbitHtml += '<div style="text-align: center;">';
+                orbitHtml += '<svg style="width: 64px; height: 64px; color: white; margin: 0 auto 1rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>';
+                orbitHtml += '<button onclick="window.location.href=\\'' + window.location.origin + '/enroll?tutorId=' + tutorId + '\\'" style="padding: 0.75rem 2rem; background: ' + buttonColor + '; color: white; border: none; border-radius: 0.5rem; font-weight: 600; cursor: pointer; font-size: 1rem;">Get Access</button>';
+                orbitHtml += '</div></div>';
+                orbitHtml += '</div>';
+                
+                // Add CSS animation
+                var styleId = 'orbit-style-' + Date.now();
+                var existingStyle = document.getElementById(styleId);
+                if (!existingStyle) {
+                  var style = document.createElement('style');
+                  style.id = styleId;
+                  var animName = 'orbit-move-' + Date.now();
+                  style.textContent = '@keyframes ' + animName + ' { from { transform: translateX(0); } to { transform: translateX(-' + (selectedClasses.length * 344) + 'px); } }';
+                  document.head.appendChild(style);
+                  
+                  // Update track animation name
+                  orbitHtml = orbitHtml.replace('orbit-move-' + Date.now(), animName);
+                }
+                
+                container.innerHTML = orbitHtml;
+                
+                // Start animation after a delay
+                setTimeout(function() {
+                  var track = container.querySelector('.class-orbit-track');
+                  if (track) {
+                    track.style.animationPlayState = 'running';
+                  }
+                }, 500);
+              })
+              .catch(function(error) {
+                console.error('Error loading classes:', error);
+                container.innerHTML = '<div style="padding: 2rem; text-align: center; color: #ef4444;">Error loading classes</div>';
+              });
+          });
+        }, 1000);
+      })();
+    })();
+  </script>
 </body>
 </html>`;
 
@@ -1910,8 +2447,352 @@ export default function TemplateEditorPage() {
     if (newWindow) {
       newWindow.document.write(fullHtml);
       newWindow.document.close();
+      
+      // Store preview window reference so we can focus it later if needed
+      (window as any).__previewWindow = newWindow;
+      
+      // Initialize booking calendars in preview
+      setTimeout(() => {
+        if (newWindow.document) {
+          const calendarContainers = newWindow.document.querySelectorAll('[data-calendar-user-id]');
+          calendarContainers.forEach((container: Element) => {
+            const userId = container.getAttribute('data-calendar-user-id');
+            if (userId) {
+              const calendarDiv = container.querySelector(`[id^="booking-calendar-"]`);
+              if (calendarDiv && !calendarDiv.querySelector('iframe')) {
+                const iframe = newWindow.document.createElement('iframe');
+                iframe.src = `${window.location.origin}/api/calendar/embed?userId=${userId}`;
+                iframe.style.width = '100%';
+                iframe.style.border = 'none';
+                iframe.style.minHeight = '600px';
+                iframe.title = 'Booking Calendar';
+                calendarDiv.innerHTML = '';
+                calendarDiv.appendChild(iframe);
+              }
+            }
+          });
+        }
+      }, 500);
     }
   };
+
+  // Add Calendar Component to Editor
+  const addCalendarComponent = () => {
+    if (!editor || !userId) {
+      alert('Please wait for the editor to load, or ensure you are logged in.');
+      return;
+    }
+
+    // Create calendar component HTML
+    const calendarHtml = `
+      <div class="booking-calendar-container" data-calendar-user-id="${userId}" style="padding: 2rem; background: #f9fafb; border-radius: 1rem; margin: 1rem 0; max-width: 100%;">
+        <div style="text-align: center; margin-bottom: 1.5rem;">
+          <h2 style="font-size: 2rem; font-weight: bold; color: #111827; margin-bottom: 0.5rem;">Book an Appointment</h2>
+          <p style="color: #6b7280; font-size: 1rem;">Select a date and time that works for you</p>
+        </div>
+        <div id="booking-calendar-${userId}" style="background: white; border-radius: 0.75rem; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); overflow: hidden; min-height: 600px;">
+          <iframe 
+            id="calendar-iframe-${userId}"
+            src="/api/calendar/embed?userId=${userId}&_t=${Date.now()}" 
+            style="width: 100%; height: 800px; min-height: 600px; border: none; display: block;"
+            title="Booking Calendar"
+            scrolling="no"
+          ></iframe>
+        </div>
+        <script>
+          // Auto-resize iframe based on content
+          (function() {
+            const iframe = document.getElementById('calendar-iframe-${userId}');
+            if (!iframe) return;
+            
+            function handleResize(event) {
+              if (event.data && event.data.type === 'calendar-resize') {
+                iframe.style.height = event.data.height + 'px';
+              }
+            }
+            
+            window.addEventListener('message', handleResize);
+            
+            // Initial resize after load - try multiple times
+            iframe.onload = function() {
+              // Set initial height
+              iframe.style.height = '800px';
+              
+              // Request height from iframe multiple times
+              setTimeout(function() {
+                if (iframe.contentWindow) {
+                  iframe.contentWindow.postMessage({ type: 'get-height' }, '*');
+                }
+              }, 100);
+              
+              setTimeout(function() {
+                if (iframe.contentWindow) {
+                  iframe.contentWindow.postMessage({ type: 'get-height' }, '*');
+                }
+              }, 500);
+              
+              setTimeout(function() {
+                if (iframe.contentWindow) {
+                  iframe.contentWindow.postMessage({ type: 'get-height' }, '*');
+                }
+              }, 1000);
+            };
+            
+            // Fallback: if no resize message received, set a default height
+            setTimeout(function() {
+              if (iframe.style.height === '800px' || !iframe.style.height) {
+                // Check if we received a resize message
+                const checkHeight = setInterval(function() {
+                  if (iframe.style.height && iframe.style.height !== '800px') {
+                    clearInterval(checkHeight);
+                  }
+                }, 1000);
+                
+                // After 3 seconds, if still at default, ensure minimum height
+                setTimeout(function() {
+                  clearInterval(checkHeight);
+                  if (!iframe.style.height || iframe.style.height === '800px') {
+                    iframe.style.height = '800px';
+                  }
+                }, 3000);
+              }
+            }, 2000);
+          })();
+        </script>
+        <script>
+          // Auto-refresh calendar when settings change (only for saved websites)
+          (function() {
+            const iframe = document.getElementById('calendar-iframe-${userId}');
+            if (!iframe) return;
+            
+            let lastCheckTime = Date.now();
+            let checkInterval = null;
+            
+            // Only start checking if this is a saved website (has websiteId)
+            const urlParams = new URLSearchParams(window.location.search);
+            const websiteId = urlParams.get('websiteId');
+            
+            if (websiteId) {
+              // Check for settings updates every 5 seconds
+              checkInterval = setInterval(async () => {
+                try {
+                  const response = await fetch('/api/calendar/settings?userId=${userId}&checkOnly=true');
+                  if (response.ok) {
+                    const data = await response.json();
+                    const currentTimestamp = data.lastUpdatedTimestamp || 0;
+                    
+                    // If settings were updated, reload the iframe
+                    if (currentTimestamp > lastCheckTime) {
+                      lastCheckTime = currentTimestamp;
+                      const newSrc = '/api/calendar/embed?userId=${userId}&_t=' + Date.now();
+                      iframe.src = newSrc;
+                      console.log('🔄 Calendar settings updated, reloading calendar...');
+                    }
+                  }
+                } catch (error) {
+                  console.warn('Error checking calendar settings:', error);
+                }
+              }, 5000); // Check every 5 seconds
+            }
+            
+            // Cleanup on page unload
+            window.addEventListener('beforeunload', () => {
+              if (checkInterval) clearInterval(checkInterval);
+            });
+          })();
+        </script>
+      </div>
+    `;
+
+    // Add calendar component to GrapesJS
+    const component = editor.Components.addComponent({
+      type: 'booking-calendar',
+      content: calendarHtml,
+      editable: true,
+      draggable: true,
+      droppable: false,
+      selectable: true,
+      traits: [
+        {
+          type: 'text',
+          label: 'Title',
+          name: 'title',
+          changeProp: true,
+          default: 'Book an Appointment',
+        },
+        {
+          type: 'text',
+          label: 'Subtitle',
+          name: 'subtitle',
+          changeProp: true,
+          default: 'Select a date and time that works for you',
+        },
+      ],
+    });
+
+    // Add to canvas
+    editor.addComponents(component);
+    
+    // Select and scroll to the new component
+    setTimeout(() => {
+      const components = editor.getComponents();
+      const addedComponent = components.models[components.models.length - 1];
+      if (addedComponent) {
+        editor.select(addedComponent);
+        // Scroll canvas to show the component
+        const canvasEl = editor.Canvas.getFrameEl();
+        if (canvasEl && canvasEl.contentWindow) {
+          const componentEl = addedComponent.view?.el;
+          if (componentEl) {
+            componentEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }
+      }
+    }, 100);
+
+    console.log('✅ Calendar component added to editor');
+  };
+
+  // Add Classes Orbit Component to Editor (Tutor Only)
+  const addClassesComponent = () => {
+    if (!editor || !userId) {
+      alert('Please wait for the editor to load, or ensure you are logged in.');
+      return;
+    }
+
+    if (!isTutor) {
+      alert('This feature is only available for tutors.');
+      return;
+    }
+
+    if (tutorClasses.length === 0) {
+      alert('No classes available. Please create classes first in the Tutor Dashboard.');
+      return;
+    }
+
+    // Open modal to select classes
+    setShowClassesModal(true);
+  };
+
+  // Handle class selection and add component
+  const handleAddSelectedClasses = () => {
+    if (!editor || !userId || selectedClassIds.length === 0) {
+      alert('Please select at least one class.');
+      return;
+    }
+
+    // Create Classes Orbit component HTML with selected classes
+    const classIdsString = selectedClassIds.join(',');
+    const classesHtml = `
+      <div class="class-orbit-container" data-class-ids="${classIdsString}" data-button-color="#f59e0b" data-animation-speed="normal" style="width: 100%; min-height: 400px; position: relative;">
+        <div class="class-orbit-placeholder" style="width: 100%; min-height: 400px; background: #f3f4f6; border: 2px dashed #d1d5db; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-direction: column; padding: 2rem;">
+          <div style="font-size: 3rem; margin-bottom: 1rem;">🎓</div>
+          <h3 style="font-size: 1.25rem; font-weight: 600; color: #374151; margin-bottom: 0.5rem;">Classes Orbit Animation</h3>
+          <p style="color: #6b7280; text-align: center;">${selectedClassIds.length} ${selectedClassIds.length === 1 ? 'class' : 'classes'} selected</p>
+          <div style="display: flex; gap: 0.5rem; margin-top: 1rem; flex-wrap: wrap; justify-content: center;">
+            ${selectedClassIds.map(classId => {
+              const classItem = tutorClasses.find((c: any) => c.id === classId);
+              if (!classItem) return '';
+              return `<span style="background: ${classItem.color || '#f59e0b'}; color: white; padding: 0.25rem 0.75rem; border-radius: 0.5rem; font-size: 0.875rem;">${classItem.name}</span>`;
+            }).join('')}
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Add component to GrapesJS (using registered type)
+    const component = editor.Components.addComponent({
+      type: 'class-orbit-component',
+      content: classesHtml,
+    });
+
+    // Set properties after component is created (so updateContent is triggered)
+    setTimeout(() => {
+      component.set('selectedClasses', classIdsString);
+      component.set('buttonColor', '#f59e0b');
+      component.set('animationSpeed', 'normal');
+    }, 50);
+
+    // Add to canvas
+    editor.addComponents(component);
+    
+    // Select and scroll to the new component
+    setTimeout(() => {
+      const components = editor.getComponents();
+      const addedComponent = components.models[components.models.length - 1];
+      if (addedComponent) {
+        editor.select(addedComponent);
+        // Scroll canvas to show the component
+        const canvasEl = editor.Canvas.getFrameEl();
+        if (canvasEl && canvasEl.contentWindow) {
+          const componentEl = addedComponent.view?.el;
+          if (componentEl) {
+            componentEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }
+      }
+    }, 100);
+
+    // Close modal and reset selection
+    setShowClassesModal(false);
+    setSelectedClassIds([]);
+    
+    console.log('✅ Classes Orbit component added to editor');
+  };
+
+  // Load tutor classes and register Classes Orbit block
+  useEffect(() => {
+    if (!editor || !userId) return;
+
+    const loadTutorClassesAndRegisterBlock = async () => {
+      try {
+        // Check if user is a tutor
+        const token = await auth.currentUser?.getIdToken();
+        if (!token) return;
+
+        const response = await fetch('/api/users/profile', {
+          headers: {
+            'X-User-Id': userId,
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+
+        if (response.ok) {
+          const payload = await response.json();
+          const profile = payload.profile as { businessType?: BusinessType };
+          const userBusinessType = profile.businessType;
+
+          if (userBusinessType === 'tutor') {
+            setIsTutor(true);
+            
+            // Load tutor classes
+            const classesResponse = await fetch('/api/tutor/classes', {
+              headers: {
+                'X-User-Id': userId,
+                'Authorization': `Bearer ${token}`,
+              },
+            });
+
+            if (classesResponse.ok) {
+              const classesData = await classesResponse.json();
+              const loadedClasses = classesData.classes || [];
+              setTutorClasses(loadedClasses);
+
+              // Register Classes Orbit block
+              registerClassOrbitBlock(editor, loadedClasses);
+              console.log('✅ Classes Orbit block registered for tutor');
+            }
+          } else {
+            setIsTutor(false);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading tutor classes:', error);
+      }
+    };
+
+    loadTutorClassesAndRegisterBlock();
+  }, [editor, userId]);
 
   const handleExport = () => {
     if (!editor) return;
@@ -1967,6 +2848,274 @@ export default function TemplateEditorPage() {
     } catch (error) {
       console.error('❌ Export error:', error);
       alert('❌ Failed to export website. Check console for details.');
+    }
+  };
+
+  // Fetch links owned by current user, scoped to current website by default
+  const fetchUserLinks = async (ownerId: string, currentWebsiteId?: string | null, includeAll = false) => {
+    try {
+      setLinksLoading(true);
+
+      // 1) Fetch from dedicated links collection (if present)
+      const constraints: any[] = [
+        where('ownerUserId', '==', ownerId),
+        where('type', '==', 'customer_payment'),
+        where('status', '==', 'active'),
+      ];
+      if (!includeAll && currentWebsiteId) {
+        constraints.push(where('websiteId', '==', currentWebsiteId));
+      }
+      let rows: PaymentLinkRecord[] = [];
+      try {
+        const qRef = query(collection(db, 'links'), ...constraints);
+        const snap = await getDocs(qRef);
+        rows = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) }));
+      } catch (e) {
+        console.warn('ℹ️ links collection fetch skipped/failed (may not exist yet):', e);
+      }
+
+      // 2) Also map from services collection (most existing data lives here)
+      // Expected fields: userId (owner), name/label, paymentLink (URL), status
+      try {
+        // Try several common collection and field shapes
+        const candidateCollections = ['services', 'user_services', 'userServices'];
+        const candidateOwnerFields = ['userId', 'ownerUserId', 'ownerId'];
+        const candidateUrlFields = ['paymentLink', 'paymentUrl', 'url', 'payfastUrl', 'payfastLink'];
+        const candidateNameFields = ['name', 'title', 'label'];
+
+        let mergedCount = 0;
+        for (const coll of candidateCollections) {
+          try {
+            for (const ownerField of candidateOwnerFields) {
+              const sRef = query(collection(db, coll), where(ownerField as any, '==', ownerId));
+              const sSnap = await getDocs(sRef);
+              console.log(`🔎 Services fetch: collection=${coll}, ownerField=${ownerField}, count=${sSnap.size}`);
+              sSnap.forEach((docSnap) => {
+                const data: any = docSnap.data();
+                // Find a URL field
+                let url: string | null = null;
+                for (const uf of candidateUrlFields) {
+                  if (typeof data[uf] === 'string' && data[uf].length > 0) {
+                    url = data[uf];
+                    break;
+                  }
+                }
+                if (!url) return; // skip if no payment URL
+                // Optional name
+                let label: string | undefined = undefined;
+                for (const nf of candidateNameFields) {
+                  if (typeof data[nf] === 'string' && data[nf].length > 0) {
+                    label = data[nf];
+                    break;
+                  }
+                }
+                const pl: PaymentLinkRecord = {
+                  id: `service_${docSnap.id}`,
+                  url,
+                  ownerUserId: data[ownerField] || ownerId,
+                  websiteId: data.websiteId || null,
+                  type: 'customer_payment',
+                  status: (data.status && String(data.status).toLowerCase().includes('active')) ? 'active' : 'disabled',
+                  returnUrl: data.returnUrl || undefined,
+                  label: label || 'Service link',
+                };
+                // Filter by current website if needed
+                if (!includeAll && currentWebsiteId && pl.websiteId && pl.websiteId !== currentWebsiteId) {
+                  return;
+                }
+                // Merge unique by URL
+                if (!rows.find((r) => r.url === pl.url)) {
+                  rows.push(pl);
+                  mergedCount++;
+                }
+              });
+            }
+          } catch (inner) {
+            console.warn(`ℹ️ services fetch failed for ${coll}:`, inner);
+          }
+        }
+        console.log(`✅ Merged ${mergedCount} payment link(s) from services`);
+      } catch (e) {
+        console.warn('ℹ️ services collection fetch skipped/failed:', e);
+      }
+
+      setUserLinks(rows);
+      console.log('📄 Total selectable links:', rows.length, rows.map(r=>({label:r.label, url:r.url, websiteId:r.websiteId}))); 
+      return rows;
+    } catch (e) {
+      console.error('❌ Failed to fetch user links:', e);
+      setUserLinks([]);
+      return [] as PaymentLinkRecord[];
+    } finally {
+      setLinksLoading(false);
+    }
+  };
+
+  // Open payment link picker
+  const openLinkPicker = async () => {
+    if (!editor) {
+      alert('Editor not ready yet.');
+      return;
+    }
+    if (!userId) {
+      alert('Please sign in again.');
+      return;
+    }
+    await fetchUserLinks(userId, websiteId, showAllUserLinks);
+    setIsLinkPickerOpen(true);
+  };
+
+  const closeLinkPicker = () => setIsLinkPickerOpen(false);
+
+  // Attach a selected link to current component
+  const attachPaymentLinkToSelected = (link: PaymentLinkRecord) => {
+    if (!editor) return;
+    const selected = editor.getSelected();
+    if (!selected) {
+      alert('Select a button or link first.');
+      return;
+    }
+
+    // Always normalize PayFast URLs to include the correct redirect
+    let finalUrl = link.url;
+    if (link.type === 'customer_payment' && link.url.includes('payfast.co.za')) {
+      finalUrl = normalizeCustomerPayfastUrl(link.url);
+      console.log('🔗 Normalized PayFast URL:', {
+        original: link.url,
+        normalized: finalUrl,
+        userId,
+        websiteId,
+        publishedUrl
+      });
+    }
+
+    const type = selected.get('type');
+    if (type === 'link' || selected.view?.el?.tagName === 'A') {
+      selected.addAttributes({ href: finalUrl, target: '_blank', 'data-link-id': link.id, 'data-link-type': link.type });
+      selected.addClass('payment-link');
+      editor.Modal && editor.Modal.close && editor.Modal.close();
+      setIsLinkPickerOpen(false);
+      return;
+    }
+    // Buttons: use data-href and click handler already injected
+    if (type === 'button' || selected.view?.el?.tagName === 'BUTTON') {
+      selected.addAttributes({ 'data-href': finalUrl, 'data-link-id': link.id, 'data-link-type': link.type });
+      selected.addClass('payment-button');
+      setIsLinkPickerOpen(false);
+      return;
+    }
+    alert('Selected element is not a button or link.');
+  };
+
+  // Heuristic to detect platform subscription links we must NOT allow on public websites
+  const isPlatformSubscriptionUrl = (url: string): boolean => {
+    try {
+      const u = String(url || '').toLowerCase();
+      // Block our subscribe endpoint and explicit subscription markers
+      if (u.includes('/api/payfast/subscribe')) return true;
+      if (u.includes('custom_str3=subscription')) return true;
+      // Common success page paths of the platform
+      if (u.includes('/dashboard/payments/success')) return true;
+      // Sandbox/PayFast direct links are allowed; only block when parameters clearly indicate platform subscription
+      return false;
+    } catch (_) {
+      return false;
+    }
+  };
+
+  // Normalize PayFast customer links to store referrer URL for redirecting back to the page
+  const normalizeCustomerPayfastUrl = (url: string): string => {
+    try {
+      const u = new URL(url);
+      const params = u.searchParams;
+      
+      // Store the current page URL as referrer (custom_str4) - this works for ALL phases!
+      // This allows customers to be redirected back to the exact page they came from,
+      // whether it's a published site, draft preview, or editor preview
+      const currentPageUrl = window.location.href;
+      params.set('custom_str4', currentPageUrl);
+      console.log('✅ Added custom_str4 (referrer URL) to PayFast URL:', currentPageUrl);
+      
+      // Also store in sessionStorage as backup for old links or if PayFast doesn't preserve custom_str4
+      try {
+        sessionStorage.setItem('payment_referrer', currentPageUrl);
+        console.log('✅ Stored referrer in sessionStorage as backup');
+      } catch (e) {
+        console.warn('⚠️ Could not store referrer in sessionStorage:', e);
+      }
+      
+      // Ensure we are not marking it as subscription (check before setting custom_str3)
+      // Remove any existing 'subscription' value first
+      if (params.get('custom_str3') === 'subscription') {
+        params.delete('custom_str3');
+      }
+      
+      // Also add websiteId to custom_str3 as backup (only if not 'subscription')
+      if (websiteId && userId && websiteId !== 'subscription') {
+        params.set('custom_str3', websiteId);
+        console.log('✅ Added custom_str3 (websiteId) to PayFast URL:', websiteId);
+      } else if (!websiteId || !userId) {
+        console.warn('⚠️ No websiteId available, payment-redirect API will use fallback lookup');
+      } else if (websiteId === 'subscription') {
+        console.warn('⚠️ websiteId is "subscription", skipping custom_str3 to avoid confusion');
+      }
+      
+      // Use client-side redirect page for better referrer handling (works for old links too!)
+      const redirectPageUrl = `${window.location.origin}/payment-redirect`;
+      params.set('return_url', redirectPageUrl);
+      params.set('cancel_url', redirectPageUrl);
+      
+      u.search = params.toString();
+      console.log('🔗 Normalized PayFast URL with referrer for redirect:', u.toString());
+      return u.toString();
+    } catch (error) {
+      console.error('❌ Error normalizing PayFast URL:', error);
+      return url;
+    }
+  };
+
+  // Validate raw URL pasted into traits and auto-bind if it matches an owned link
+  const resolveAndBindUrlIfOwned = async (url: string) => {
+    try {
+      if (!userId || !editor) return;
+      if (!/^https?:\/\//i.test(url)) return; // only validate http(s)
+      const q = query(
+        collection(db, 'links'),
+        where('ownerUserId', '==', userId),
+        where('url', '==', url)
+      );
+      const snap = await getDocs(q);
+      if (snap.empty) {
+        // Not found in registry; still block obvious platform subscription URLs
+        if (isPlatformSubscriptionUrl(url)) {
+          alert('This URL is for platform subscriptions and cannot be used on your website buttons. Use a customer payment link instead.');
+        }
+        return; // allow as plain external otherwise
+      }
+      const docSnap = snap.docs[0];
+      const link = { id: docSnap.id, ...(docSnap.data() as any) } as PaymentLinkRecord;
+      if (link.type === 'platform_subscription') {
+        alert('This link is a platform subscription link and cannot be used inside your public website. Please select a customer payment link.');
+        // Attempt to clear selection attribute to avoid misbinding
+        const sel = editor.getSelected();
+        if (sel) {
+          if (sel.get('type') === 'link' || sel.view?.el?.tagName === 'A') {
+            sel.addAttributes({ href: '' });
+          } else if (sel.get('type') === 'button' || sel.view?.el?.tagName === 'BUTTON') {
+            sel.addAttributes({ 'data-href': '' });
+          }
+        }
+        return;
+      }
+      // Bind to selected component (also guard by heuristic)
+      if (isPlatformSubscriptionUrl(link.url)) {
+        alert('This URL looks like a platform subscription link and cannot be used on your website buttons.');
+        return;
+      }
+      const finalUrl = normalizeCustomerPayfastUrl(link.url);
+      attachPaymentLinkToSelected({ ...link, url: finalUrl });
+    } catch (e) {
+      console.warn('URL validation failed:', e);
     }
   };
 
@@ -2158,100 +3307,311 @@ export default function TemplateEditorPage() {
         /* We intentionally leave it unstyled so template CSS works */
       `}} />
       
-      <div className="h-screen flex flex-col bg-gray-900">
-        {/* Top Bar */}
-        <div className="bg-gray-800 border-b border-gray-700 px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center space-x-4">
+      <div className="h-screen flex flex-col bg-gray-50">
+        {/* Top Bar - Matching Dashboard Style */}
+        <div className="bg-white border-b border-gray-200 shadow-sm px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center space-x-6">
           <button
             onClick={() => router.push('/dashboard')}
-            className="text-gray-300 hover:text-white flex items-center space-x-2"
+              className="text-gray-600 hover:text-orange-600 flex items-center space-x-2 transition-colors font-medium"
           >
-            <span>←</span>
+              <ArrowLeft className="h-4 w-4" />
             <span>Back to Dashboard</span>
           </button>
-          <div className="text-white font-semibold">
+            <div className="h-6 w-px bg-gray-200"></div>
+            <div className="text-gray-900 font-semibold text-lg">
             {templateData?.name || 'Template Editor'}
           </div>
         </div>
         
-        <div className="flex items-center space-x-3">
+          <div className="flex items-center gap-3">
           {/* Device Switcher */}
           <div className="panel__devices"></div>
-          
-          {/* Website Name Input */}
-          <div className="flex items-center gap-2">
-            <label className="text-sm font-medium text-gray-300">Website Name:</label>
-            <input
-              type="text"
-              value={websiteName}
-              onChange={(e) => setWebsiteName(e.target.value)}
-              placeholder="Enter website name..."
-              className="px-3 py-1 bg-gray-800 text-white border border-gray-600 rounded text-sm focus:outline-none focus:border-blue-500"
-            />
-          </div>
           
           {/* Actions */}
           <button
             onClick={handlePreview}
-            className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors"
+              className="px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-medium flex items-center space-x-2 shadow-sm hover:shadow"
           >
-            👁️ Preview
+              <Eye className="h-4 w-4" />
+              <span>Preview</span>
           </button>
           
-          {/* Preview Image - Upload or Capture */}
-          <div className="flex items-center space-x-2">
-            {/* File Upload Button */}
-            <label className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center space-x-2 cursor-pointer">
-              <span>📁</span>
-              <span>Upload Preview</span>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleFileUpload}
-                className="hidden"
-              />
-            </label>
-            <span className="text-gray-400">or</span>
+          {/* Select Payment Link */}
+          <button
+            onClick={openLinkPicker}
+              className="px-4 py-2 bg-orange-600 text-white rounded-xl hover:bg-orange-700 transition-colors font-medium flex items-center space-x-2 shadow-sm hover:shadow"
+            title="Attach a payment link to the selected element"
+          >
+              <Link2 className="h-4 w-4" />
+              <span>Select Payment Link</span>
+          </button>
+          
+          {/* Add Calendar - Business Tier Only */}
+          {hasBusinessAccess && (
             <button
-              onClick={handleCaptureScreenshot}
-              className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors font-medium flex items-center space-x-2"
+              onClick={() => {
+                if (!editor) return;
+                addCalendarComponent();
+              }}
+              className="px-4 py-2 bg-orange-600 text-white rounded-xl hover:bg-orange-700 transition-colors font-medium flex items-center space-x-2 shadow-sm hover:shadow"
+              title="Add booking calendar to your website"
             >
-              <span>📷</span>
-              <span>{previewImagePreview ? 'Retake' : 'Capture Screenshot'}</span>
+              <Calendar className="h-4 w-4" />
+              <span>Add Calendar</span>
             </button>
-            {previewImagePreview && (
-              <div className="w-10 h-10 rounded border border-gray-600 overflow-hidden">
-                <img 
-                  src={previewImagePreview} 
-                  alt="Preview" 
-                  className="w-full h-full object-cover"
-                />
-              </div>
             )}
-          </div>
+          
+          {/* Add Classes - Tutor Only */}
+          {isTutor && (
+            <button
+              onClick={() => {
+                if (!editor) return;
+                addClassesComponent();
+              }}
+              className="px-4 py-2 bg-orange-600 text-white rounded-xl hover:bg-orange-700 transition-colors font-medium flex items-center space-x-2 shadow-sm hover:shadow"
+              title="Add classes orbit animation to your website"
+            >
+              <GraduationCap className="h-4 w-4" />
+              <span>Add Classes</span>
+            </button>
+          )}
           
           <button
             onClick={handleExport}
-            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+              className="px-4 py-2 bg-orange-600 text-white rounded-xl hover:bg-orange-700 transition-colors font-medium flex items-center space-x-2 shadow-sm hover:shadow"
           >
-            📥 Export Files
+              <Download className="h-4 w-4" />
+              <span>Export Files</span>
           </button>
           
           <button
             onClick={handleSave}
             disabled={isSaving}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 bg-gray-900 text-white rounded-xl hover:bg-gray-800 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 shadow-lg hover:shadow-xl"
           >
-            {isSaving ? '⏳ Saving...' : '💾 Save (Optional)'}
+              <Save className="h-4 w-4" />
+              <span>{isSaving ? 'Saving...' : 'Save'}</span>
           </button>
         </div>
       </div>
 
         {/* GrapesJS Editor */}
-        <div className="flex-1 relative">
+        <div className="flex-1 relative bg-gray-50">
           <div ref={editorRef} className="h-full" />
         </div>
       </div>
+
+      {/* Payment Link Picker Modal */}
+      {isLinkPickerOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/60" onClick={closeLinkPicker}></div>
+          <div className="relative bg-white border border-gray-200 rounded-xl shadow-xl w-full max-w-3xl mx-4">
+            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+              <div className="text-gray-900 font-semibold text-lg">Select Payment Link</div>
+              <button onClick={closeLinkPicker} className="text-gray-400 hover:text-gray-600 transition-colors">✕</button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="flex items-center gap-3">
+                <input
+                  value={linkSearch}
+                  onChange={(e)=>setLinkSearch(e.target.value)}
+                  placeholder="Search by label or URL..."
+                  className="flex-1 px-4 py-2 bg-gray-50 text-gray-900 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                />
+                <label className="flex items-center gap-2 text-gray-700 text-sm">
+                  <input type="checkbox" checked={showAllUserLinks} onChange={async (e)=>{ setShowAllUserLinks(e.target.checked); if (userId) { await fetchUserLinks(userId, websiteId, e.target.checked); } }} />
+                  Show all my links
+                </label>
+                <button
+                  onClick={async ()=>{ if (userId) await fetchUserLinks(userId, websiteId, showAllUserLinks); }}
+                  className="px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-medium"
+                >
+                  Refresh
+                </button>
+              </div>
+              <div className="max-h-80 overflow-auto border border-gray-200 rounded-xl">
+                {linksLoading ? (
+                  <div className="p-6 text-center text-gray-500">Loading links…</div>
+                ) : userLinks.length === 0 ? (
+                  <div className="p-6 text-center text-gray-500">No payment links found for this website. Create one in your Link Generator and refresh.</div>
+                ) : (
+                  <ul className="divide-y divide-gray-200">
+                    {userLinks.filter(l=>{
+                      const s = linkSearch.trim().toLowerCase();
+                      if (!s) return true;
+                      return (l.label||'').toLowerCase().includes(s) || (l.url||'').toLowerCase().includes(s);
+                    }).map(link => (
+                      <li key={link.id} className="p-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                        <div className="min-w-0 flex-1">
+                          <div className="text-gray-900 font-medium truncate">{link.label || link.id}</div>
+                          <div className="text-xs text-gray-500 truncate mt-1">{link.url}</div>
+                          <div className="text-xs text-gray-400 mt-1">type: {link.type} · status: {link.status || 'active'}</div>
+                        </div>
+                        <button
+                          onClick={()=>attachPaymentLinkToSelected(link)}
+                          className="px-4 py-2 bg-orange-600 text-white rounded-xl hover:bg-orange-700 transition-colors font-medium ml-4 flex-shrink-0"
+                        >
+                          Use this link
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+              <div className="text-xs text-gray-500 bg-gray-50 px-4 py-3 rounded-lg">
+                Tip: After selecting a link, it will be bound to the selected button/link. Payment links open in a new tab by default.
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Classes Selection Modal - Tutor Only */}
+      {showClassesModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/60" onClick={() => { setShowClassesModal(false); setSelectedClassIds([]); }}></div>
+          <div className="relative bg-white border border-gray-200 rounded-xl shadow-xl w-full max-w-3xl mx-4 max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+              <div className="text-gray-900 font-semibold text-lg flex items-center space-x-2">
+                <GraduationCap className="h-5 w-5 text-orange-600" />
+                <span>Select Classes for Orbit Animation</span>
+              </div>
+              <button 
+                onClick={() => { setShowClassesModal(false); setSelectedClassIds([]); }} 
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto flex-1">
+              {tutorClasses.length === 0 ? (
+                <div className="text-center py-8">
+                  <GraduationCap className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                  <p className="text-gray-600 mb-4">No classes available.</p>
+                  <p className="text-sm text-gray-500">Please create classes first in the Tutor Dashboard.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-sm text-gray-600 mb-4">
+                    Select the classes you want to display in the orbit animation. You can select multiple classes.
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {tutorClasses.map((classItem: any) => {
+                      const isSelected = selectedClassIds.includes(classItem.id);
+                      return (
+                        <div
+                          key={classItem.id}
+                          onClick={() => {
+                            if (isSelected) {
+                              setSelectedClassIds(prev => prev.filter(id => id !== classItem.id));
+                            } else {
+                              setSelectedClassIds(prev => [...prev, classItem.id]);
+                            }
+                          }}
+                          className={`border-2 rounded-xl cursor-pointer transition-all overflow-hidden ${
+                            isSelected
+                              ? 'border-orange-500 shadow-lg'
+                              : 'border-gray-200 hover:border-gray-300 hover:shadow-md bg-white'
+                          }`}
+                        >
+                          {/* Cover Image or Color Background */}
+                          {classItem.coverImageUrl ? (
+                            <>
+                              <div className="relative h-32 w-full overflow-hidden">
+                                <img
+                                  src={classItem.coverImageUrl}
+                                  alt={classItem.name}
+                                  className="w-full h-full object-cover"
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
+                                <div className="absolute bottom-0 left-0 right-0 p-3 text-white">
+                                  <h3 className="font-bold text-base mb-1 drop-shadow-lg">{classItem.name}</h3>
+                                  {classItem.description && (
+                                    <p className="text-xs opacity-95 line-clamp-1 drop-shadow-md">{classItem.description}</p>
+                                  )}
+                                </div>
+                                {isSelected && (
+                                  <div className="absolute top-2 right-2 bg-orange-500 rounded-full p-1">
+                                    <Check className="h-3 w-3 text-white" />
+                                  </div>
+                                )}
+                              </div>
+                            </>
+                          ) : (
+                            <div 
+                              className="relative p-4"
+                              style={{ backgroundColor: classItem.color || '#f59e0b' }}
+                            >
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <h3 className="font-bold text-lg text-white mb-1">{classItem.name}</h3>
+                                  {classItem.description && (
+                                    <p className="text-sm text-white/90 line-clamp-1">{classItem.description}</p>
+                                  )}
+                                </div>
+                                {isSelected && (
+                                  <div className="bg-white rounded-full p-1 ml-2">
+                                    <Check className="h-3 w-3 text-orange-600" />
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {selectedClassIds.length > 0 && (
+                    <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                      <p className="text-sm text-orange-800">
+                        <strong>{selectedClassIds.length}</strong> {selectedClassIds.length === 1 ? 'class' : 'classes'} selected
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+            <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-end space-x-3">
+              <button
+                onClick={() => { setShowClassesModal(false); setSelectedClassIds([]); }}
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAddSelectedClasses}
+                disabled={selectedClassIds.length === 0}
+                className="px-4 py-2 bg-orange-600 text-white rounded-xl hover:bg-orange-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+              >
+                <GraduationCap className="h-4 w-4" />
+                <span>Add Selected Classes</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Thank‑You URL helper bar (shows when a link/button is selected) */}
+      {showThankYouHelper && (
+        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-40 bg-white border border-gray-200 text-gray-900 px-4 py-3 rounded-xl shadow-lg">
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium text-gray-700">Return URL to use in your payment provider:</span>
+            <code className="text-xs bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200 select-all text-gray-900 font-mono">{`${typeof window !== 'undefined' ? window.location.origin : ''}/thank-you`}</code>
+            <button
+              className="text-xs px-3 py-1.5 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors font-medium"
+              onClick={() => {
+                const text = `${window.location.origin}/thank-you`;
+                navigator.clipboard.writeText(text);
+              }}
+            >Copy</button>
+            <button
+              className="text-xs px-3 py-1.5 bg-transparent text-gray-500 hover:text-gray-700 transition-colors"
+              onClick={() => setShowThankYouHelper(false)}
+            >Hide</button>
+          </div>
+        </div>
+      )}
     </>
   );
 }

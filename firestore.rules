@@ -6,13 +6,28 @@ service cloud.firestore {
     }
 
     function adminEmails() {
-      return ['tjayburger2004@gmail.com'];
+      return [
+        'tjayburger2004@gmail.com',
+        // IMPORTANT: Add your email here after checking the browser console
+        // When you try to upload, check console.log('👤 Current user email:', ...)
+        // Then add your email to this list and deploy the rules
+      ];
     }
 
     function isAdmin() {
-      return isSignedIn()
+      // Check if user is signed in and has email
+      return isSignedIn() 
         && request.auth.token.email != null
-        && adminEmails().hasAny([request.auth.token.email.toLowerCase()]);
+        && (
+          // Check if email matches admin email
+          request.auth.token.email.toLowerCase() == 'tjayburger2004@gmail.com'
+          ||
+          // OR check if user has admin tier (check their user document)
+          (
+            exists(/databases/$(database)/documents/users/$(request.auth.uid))
+            && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.tier == 'admin'
+          )
+        );
     }
 
     function isOwner(userId) {

@@ -31,6 +31,32 @@ export default function TemplatePreviewPage() {
 
         const template = templateDoc.data();
 
+        // Handle templates with HTML content stored in Firestore (no CORS issues!)
+        if (template.htmlContent && !template.grapesJsData) {
+          try {
+            console.log('✅ Using HTML content from Firestore');
+            // Create blob URL directly from HTML content stored in Firestore
+            const blob = new Blob([template.htmlContent], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            setRenderedContent(url);
+            setLoading(false);
+            return;
+          } catch (htmlError: any) {
+            console.error('Error loading HTML from Firestore:', htmlError);
+            setError(`Failed to load HTML template: ${htmlError.message || 'Unknown error'}`);
+            setLoading(false);
+            return;
+          }
+        }
+
+        // Fallback: Handle ZIP file templates (for older templates without htmlContent)
+        if (template.zipUrl && !template.grapesJsData && !template.htmlContent) {
+          setError('This template requires HTML content. Please re-upload the template.');
+          setLoading(false);
+          return;
+        }
+
+        // Handle GrapesJS JSON templates
         if (!template.grapesJsData) {
           setError('This template does not have GrapesJS data to preview');
           setLoading(false);

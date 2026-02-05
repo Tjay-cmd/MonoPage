@@ -26,8 +26,9 @@ import {
   Zap,
   Target,
   Sparkles,
-  Eye
+  Building
 } from 'lucide-react';
+import { DashboardLoadingSkeleton } from '@/components/LoadingSkeleton';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -206,14 +207,7 @@ export default function DashboardPage() {
   const combinedLoading = loading || subscriptionLoading;
 
   if (combinedLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
-        </div>
-      </div>
-    );
+    return <DashboardLoadingSkeleton />;
   }
 
   if (!user) {
@@ -325,27 +319,30 @@ export default function DashboardPage() {
               <div className="mb-8">
                 <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Templates</h2>
                 <div className="space-y-1">
-                  <button 
-                    onClick={() => router.push('/dashboard')}
+                  <Link 
+                    href="/dashboard"
+                    prefetch={true}
                     className="flex items-center space-x-3 py-2 px-3 rounded-lg bg-orange-100 text-orange-700 cursor-pointer transition-colors w-full text-left"
                   >
                     <Globe className="h-4 w-4 text-orange-600" />
                     <span className="text-sm font-medium text-orange-700">All Templates</span>
-                  </button>
-                  <button 
-                    onClick={() => router.push('/dashboard/websites')}
+                  </Link>
+                  <Link 
+                    href="/dashboard/websites"
+                    prefetch={true}
                     className="flex items-center space-x-3 py-2 px-3 rounded-lg hover:bg-gray-200 cursor-pointer transition-colors w-full text-left"
                   >
                     <FileText className="h-4 w-4 text-gray-600" />
                     <span className="text-sm font-medium text-gray-700">My Websites</span>
-                  </button>
-                  <button 
-                    onClick={() => router.push('/dashboard/websites')}
+                  </Link>
+                  <Link 
+                    href="/dashboard/websites"
+                    prefetch={true}
                     className="flex items-center space-x-3 py-2 px-3 rounded-lg hover:bg-gray-200 cursor-pointer transition-colors w-full text-left"
                   >
                     <Globe className="h-4 w-4 text-gray-600" />
                     <span className="text-sm font-medium text-gray-700">All Websites</span>
-                  </button>
+                  </Link>
                 </div>
               </div>
 
@@ -353,30 +350,59 @@ export default function DashboardPage() {
               <div className="mb-8">
                 <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Business</div>
                 <div className="space-y-1">
-                  <button 
-                    onClick={() => router.push('/dashboard/services')}
+                  {(subscriptionData?.tier === 'business' || subscriptionData?.tier === 'premium' || subscriptionData?.tier === 'admin') && (
+                    <button 
+                      onClick={() => {
+                        // Route to profession-specific dashboard based on user's businessType
+                        // If user data is not loaded yet, go to redirect page which will handle it
+                        if (!user || !user.businessType) {
+                          router.push('/dashboard/business');
+                          return;
+                        }
+                        
+                        const businessType = user.businessType;
+                        const routeMap: Record<string, string> = {
+                          barber: '/dashboard/business/barber',
+                          photographer: '/dashboard/business/photographer',
+                          tutor: '/dashboard/business/tutor',
+                        };
+                        const route = routeMap[businessType] || '/dashboard/business/barber';
+                        router.push(route);
+                      }}
+                      className="flex items-center space-x-3 py-2 px-3 rounded-lg hover:bg-gray-200 cursor-pointer transition-colors group w-full text-left"
+                    >
+                      <Building className="h-4 w-4 text-gray-600" />
+                      <span className="text-sm text-gray-700 group-hover:text-gray-900">Business Features</span>
+                      <ArrowRight className="h-3 w-3 text-gray-400 group-hover:text-gray-600 ml-auto" />
+                    </button>
+                  )}
+                  <Link 
+                    href="/dashboard/services"
+                    prefetch={true}
                     className="flex items-center space-x-3 py-2 px-3 rounded-lg hover:bg-gray-200 cursor-pointer transition-colors group w-full text-left"
                   >
                     <DollarSign className="h-4 w-4 text-gray-600" />
                     <span className="text-sm text-gray-700 group-hover:text-gray-900">Services</span>
                     <ArrowRight className="h-3 w-3 text-gray-400 group-hover:text-gray-600 ml-auto" />
-                  </button>
-                  <button 
-                    onClick={() => router.push('/dashboard/subscription')}
+                  </Link>
+                  <Link 
+                    href="/dashboard/subscription"
+                    prefetch={true}
                     className="flex items-center space-x-3 py-2 px-3 rounded-lg hover:bg-gray-200 cursor-pointer transition-colors group w-full text-left"
                   >
                     <Crown className="h-4 w-4 text-gray-600" />
                     <span className="text-sm text-gray-700 group-hover:text-gray-900">Subscription</span>
                     <ArrowRight className="h-3 w-3 text-gray-400 group-hover:text-gray-600 ml-auto" />
-                  </button>
-                  <button 
-                    onClick={() => router.push('/dashboard/settings')}
+                  </Link>
+                  <Link 
+                    href="/dashboard/settings"
+                    prefetch={true}
                     className="flex items-center space-x-3 py-2 px-3 rounded-lg hover:bg-gray-200 cursor-pointer transition-colors group w-full text-left"
                   >
                     <Settings className="h-4 w-4 text-gray-600" />
                     <span className="text-sm text-gray-700 group-hover:text-gray-900">Settings</span>
                     <ArrowRight className="h-3 w-3 text-gray-400 group-hover:text-gray-600 ml-auto" />
-                  </button>
+                  </Link>
                 </div>
               </div>
 
@@ -562,20 +588,13 @@ export default function DashboardPage() {
                   </p>
 
                   {/* Action Button */}
-                  <div className="flex flex-col gap-2 pt-2 border-t border-gray-100">
+                  <div className="pt-2 border-t border-gray-100">
                     <button
                       onClick={() => router.push(`/dashboard/templates?only=${cat.id}`)}
                       className="w-full bg-gray-900 text-white font-medium py-3 px-5 rounded-xl hover:bg-gray-800 transition-colors duration-200 flex items-center justify-center gap-2"
                     >
                       View templates
                       <ArrowRight className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => router.push(`/dashboard/templates?open=${cat.id}`)}
-                      className="w-full bg-white border border-gray-200 text-gray-700 font-medium py-2.5 px-5 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-colors duration-200 flex items-center justify-center gap-2"
-                    >
-                      <Eye className="h-4 w-4" />
-                      Preview
                     </button>
                   </div>
                 </div>

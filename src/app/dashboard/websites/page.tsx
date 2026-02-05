@@ -318,6 +318,10 @@ export default function UserWebsitesPage() {
   const previewWebsite = (website: UserWebsite) => {
     const newWindow = window.open('', '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes');
     if (newWindow) {
+      // Get the editor URL for this website (for redirect after payment)
+      const editorUrl = `/dashboard/templates/${website.templateId}/editor?websiteId=${website.id}`;
+      const origin = window.location.origin;
+      
       // Build full HTML with CSS
       const fullHtml = `
 <!DOCTYPE html>
@@ -331,6 +335,78 @@ export default function UserWebsitesPage() {
 <body>
   ${website.savedHtml || ''}
   <script>${website.savedJs || ''}</script>
+  <script>
+    // Store preview referrer for payment redirects (same as editor preview)
+    // Use localStorage (shared across tabs) so PayFast redirect can access it
+    (function() {
+      var editorPageUrl = '${origin}${editorUrl}';
+      var websiteId = '${website.id}';
+      var previewId = 'preview-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+      var previewData = {
+        editorUrl: editorPageUrl,
+        previewId: previewId,
+        websiteId: websiteId,
+        isPreview: true,
+        timestamp: Date.now()
+      };
+      
+      // Store preview data in localStorage (shared across tabs)
+      function storePreviewReferrer() {
+        try {
+          var previewDataStr = JSON.stringify(previewData);
+          localStorage.setItem('payment_referrer', previewDataStr);
+          localStorage.setItem('preview_data', previewDataStr); // Backup
+          sessionStorage.setItem('payment_referrer', previewDataStr);
+          console.log('✅ Stored preview referrer for payment redirect:', previewData);
+        } catch(e) {
+          console.warn('Could not store preview referrer:', e);
+        }
+      }
+      
+      // Store immediately
+      storePreviewReferrer();
+      
+      // Also store on page load/visibility change to ensure it's always set
+      document.addEventListener('DOMContentLoaded', storePreviewReferrer);
+      
+      // Store on visibility change (when tab becomes active)
+      document.addEventListener('visibilitychange', function() {
+        if (!document.hidden) {
+          storePreviewReferrer();
+        }
+      });
+      
+      // Handle payment link clicks to update referrer and modify URL
+      document.addEventListener('click', function(e) {
+        var target = e.target.closest('a[href*="payfast"], button[data-href*="payfast"], a.payment-link, button.payment-button');
+        if (target) {
+          var href = target.getAttribute('href') || target.getAttribute('data-href');
+          if (href && (href.includes('payfast.co.za') || target.classList.contains('payment-link') || target.classList.contains('payment-button'))) {
+            // Store preview referrer before navigation
+            storePreviewReferrer();
+            
+            // Also try to add referrer to URL as query param (for old links)
+            try {
+              var url = new URL(href);
+              if (!url.searchParams.has('custom_str4')) {
+                // Store preview data in URL as base64 encoded JSON
+                var previewDataEncoded = btoa(JSON.stringify(previewData));
+                url.searchParams.set('custom_str4', previewDataEncoded);
+                if (target.tagName === 'A') {
+                  target.setAttribute('href', url.toString());
+                } else {
+                  target.setAttribute('data-href', url.toString());
+                }
+                console.log('✅ Added preview referrer to PayFast URL');
+              }
+            } catch(e) {
+              console.warn('Could not modify PayFast URL:', e);
+            }
+          }
+        }
+      }, true); // Use capture phase to catch before navigation
+    })();
+  </script>
 </body>
 </html>
       `;
@@ -613,8 +689,8 @@ function WebsiteCard({
           ...getAspectRatioStyle(),
           ...(website.previewImageUrl && imageLoaded ? {
             backgroundImage: `url(/api/image-proxy?url=${encodeURIComponent(website.previewImageUrl)})`,
-            backgroundSize: 'contain',
-            backgroundPosition: 'center',
+            backgroundSize: 'cover', // Use 'cover' to fill the container better
+            backgroundPosition: 'center top', // Show top of website (header area)
             backgroundRepeat: 'no-repeat'
           } : {})
         }}

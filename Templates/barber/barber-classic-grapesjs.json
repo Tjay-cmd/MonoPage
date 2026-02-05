@@ -1,0 +1,25 @@
+{
+  "assets": [],
+  "styles": [],
+  "pages": [
+    {
+      "id": "page-1",
+      "frames": [
+        {
+          "id": "frame-1",
+          "name": "Main Frame",
+          "components": [
+            {
+              "type": "link",
+              "content": "Templates/barber/barber-classic.html",
+              "attributes": {
+                "href": "Templates/barber/barber-classic.html"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+

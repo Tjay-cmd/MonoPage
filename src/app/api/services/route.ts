@@ -183,6 +183,11 @@ export async function GET(request: NextRequest) {
         services,
         merchantSettings,
         subscriptionTier: subscription.tier,
+      }, {
+        status: 200,
+        headers: {
+          'Cache-Control': 'private, max-age=60, stale-while-revalidate=120',
+        }
       });
     } catch (firestoreError) {
       if (permissionDenied(firestoreError)) {

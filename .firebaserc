@@ -1,5 +1,7 @@
 {
-  "projects": {},
+  "projects": {
+    "MonoPage": "pay-zip-sa"
+  },
   "targets": {},
   "etags": {}
 }

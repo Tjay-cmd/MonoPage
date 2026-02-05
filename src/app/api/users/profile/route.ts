@@ -141,6 +141,11 @@ export async function GET(request: NextRequest) {
             tier: subscription.tier,
           }),
           subscriptionTier: subscription.tier,
+        }, {
+          status: 200,
+          headers: {
+            'Cache-Control': 'private, max-age=30, stale-while-revalidate=60',
+          }
         });
       }
 
@@ -161,6 +166,11 @@ export async function GET(request: NextRequest) {
           updatedAt: serializeDate(data.updatedAt),
         },
         subscriptionTier: subscription.tier,
+      }, {
+        status: 200,
+        headers: {
+          'Cache-Control': 'private, max-age=30, stale-while-revalidate=60',
+        }
       });
     } catch (firestoreError) {
       if (permissionDenied(firestoreError)) {

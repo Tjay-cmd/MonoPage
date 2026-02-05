@@ -131,3 +131,63 @@ export interface TierRequirements {
     features: string[];
   };
 }
+
+// Calendar Types
+export interface CalendarTemplate {
+  id: string;
+  name: string;
+  description: string;
+  previewImage?: string;
+  category: 'modern' | 'classic' | 'compact' | 'colorful' | 'professional';
+}
+
+export interface CalendarSettings {
+  userId: string;
+  templateId: string;
+  design?: {
+    colors?: {
+      primary?: string;
+      secondary?: string;
+      accent?: string;
+      background?: string;
+      text?: string;
+    };
+    fonts?: {
+      heading?: string;
+      body?: string;
+    };
+  };
+  schedule: {
+    timeIncrement: number; // minutes (15, 30, 60)
+    startTime: string; // "08:00"
+    endTime: string; // "18:00"
+    defaultDays: string[]; // ['monday', 'tuesday', ...]
+  };
+  closedDates: ClosedDate[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ClosedDate {
+  id: string;
+  type: 'single' | 'range' | 'recurring';
+  startDate: string; // ISO date string
+  endDate?: string; // ISO date string (for range)
+  dayOfWeek?: string; // 'sunday', 'monday', etc. (for recurring)
+  reason?: string;
+}
+
+export interface Booking {
+  id: string;
+  userId: string; // Business owner's userId
+  date: string; // ISO date string
+  time: string; // "08:00"
+  endTime: string; // "09:00"
+  clientName: string;
+  clientPhone: string;
+  clientEmail?: string;
+  serviceType?: string;
+  status: 'confirmed' | 'pending' | 'cancelled';
+  createdAt: Date;
+  updatedAt: Date;
+}

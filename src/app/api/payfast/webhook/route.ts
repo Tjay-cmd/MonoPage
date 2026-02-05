@@ -5,6 +5,7 @@ import {
   getUserSubscriptionServer,
   updateUserSubscriptionServer,
 } from '@/lib/server/subscription';
+import { adminDb } from '@/lib/server/firebaseAdmin';
 
 export async function POST(request: NextRequest) {
   try {
@@ -46,6 +47,33 @@ export async function POST(request: NextRequest) {
     const userId = paymentData.custom_str1 as string;
     const tierStr = paymentData.custom_str2 as string;
     const paymentType = paymentData.custom_str3 as string;
+
+    // Handle tutor enrollment payments
+    if (paymentType === 'tutor-enrollment') {
+      const enrollmentId = tierStr; // In tutor enrollment, custom_str2 is enrollmentId
+      
+      // Update enrollment status
+      const enrollmentRef = adminDb.collection('tutor-enrollments').doc(enrollmentId);
+      const enrollmentDoc = await enrollmentRef.get();
+
+      if (!enrollmentDoc.exists) {
+        console.error('❌ Enrollment not found:', enrollmentId);
+        return NextResponse.json(
+          { error: 'Enrollment not found' },
+          { status: 404 }
+        );
+      }
+
+      await enrollmentRef.update({
+        paymentStatus: 'completed',
+        paymentTransactionId: paymentData.pf_payment_id as string,
+        paymentCompletedAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      console.log('✅ Tutor enrollment payment completed:', enrollmentId);
+      return NextResponse.json({ success: true });
+    }
 
     if (!userId || paymentType !== 'subscription') {
       console.error('❌ Invalid webhook data - missing userId or wrong payment type');

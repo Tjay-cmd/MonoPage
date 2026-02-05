@@ -39,6 +39,8 @@ interface Template {
   previewImage: string;
   previewImageUrl?: string;
   grapesJsData?: string;
+  htmlContent?: string; // HTML content extracted from ZIP
+  zipUrl?: string; // URL to ZIP file in Storage
   status: 'active' | 'inactive';
   createdAt: Date;
   editableElements: EditableElement[];
@@ -931,6 +933,9 @@ export default function AdminTemplatesPage() {
     setUploading(true);
     setUploadProgress(0);
 
+    // Store converted JSON for potential copy if Storage fails
+    let convertedJsonData: string | null = null;
+
     try {
       // Create template ID
       const templateId = `${templateCategory.toLowerCase()}-${Date.now()}`;
@@ -958,7 +963,188 @@ export default function AdminTemplatesPage() {
           return;
         }
       } else {
-        // Upload ZIP file to Firebase Storage
+        // Extract HTML content from ZIP file BEFORE uploading to Storage
+        console.log('📦 Extracting HTML from ZIP file...');
+        setUploadProgress(10);
+        
+        try {
+          const JSZip = (await import('jszip')).default;
+          const zipBlob = await templateFile!.arrayBuffer();
+          const zip = await JSZip.loadAsync(zipBlob);
+          
+          // Find the HTML file (usually the only HTML file in the root)
+          const htmlFiles = Object.keys(zip.files).filter(
+            name => name.endsWith('.html') && !name.includes('/')
+          );
+          
+          if (htmlFiles.length === 0) {
+            throw new Error('No HTML file found in the ZIP archive');
+          }
+          
+          // Get the first HTML file
+          const htmlFile = zip.files[htmlFiles[0]];
+          const htmlContent = await htmlFile.async('string');
+          
+          console.log('✅ HTML extracted, length:', htmlContent.length);
+          
+          // Convert HTML to GrapesJS JSON format
+          console.log('🔄 Converting HTML to GrapesJS JSON...');
+          setUploadProgress(20);
+          
+          try {
+            // Create a temporary hidden container for GrapesJS
+            const tempContainer = document.createElement('div');
+            tempContainer.id = `temp-gjs-${Date.now()}`;
+            tempContainer.style.position = 'fixed';
+            tempContainer.style.left = '-9999px';
+            tempContainer.style.top = '0';
+            tempContainer.style.width = '1920px';
+            tempContainer.style.height = '1080px';
+            tempContainer.style.backgroundColor = '#fff';
+            document.body.appendChild(tempContainer);
+            
+            // Parse HTML to extract body content and styles
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlContent, 'text/html');
+            const bodyContent = doc.body.innerHTML;
+            
+            // Extract ALL CSS from style tags (very important!)
+            const styleTags = doc.querySelectorAll('style');
+            let extractedCss = '';
+            styleTags.forEach(style => {
+              const cssText = style.textContent || style.innerHTML || '';
+              extractedCss += cssText + '\n';
+            });
+            
+            console.log('📝 Extracted CSS length:', extractedCss.length, 'characters');
+            
+            // Create a full HTML structure with CSS in head and body content
+            // This ensures CSS is available when GrapesJS parses it
+            const fullHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>${extractedCss}</style>
+</head>
+<body>
+${bodyContent}
+</body>
+</html>`;
+            
+            // Set the full HTML as innerHTML of container
+            tempContainer.innerHTML = fullHtml;
+            
+            // Wait for DOM to be ready
+            await new Promise(resolve => setTimeout(resolve, 200));
+            
+            // Initialize GrapesJS editor with fromElement: true to parse existing HTML
+            const tempEditor = grapesjs.init({
+              container: tempContainer,
+              plugins: [gjsPresetWebpage],
+              storageManager: false,
+              height: '1080px',
+              width: '1920px',
+              panels: { defaults: [] },
+              fromElement: true, // Parse existing HTML in container
+              canvas: {
+                styles: [], // Will be populated by GrapesJS
+              },
+            });
+            
+            // Wait for GrapesJS to process the HTML and parse CSS
+            await new Promise(resolve => setTimeout(resolve, 800));
+            
+            // Force GrapesJS to recognize CSS by using setStyle with raw CSS
+            // This ensures all CSS is captured
+            if (extractedCss.trim()) {
+              try {
+                // Add CSS using setStyle - this parses and stores it properly
+                tempEditor.setStyle(extractedCss);
+                console.log('✅ CSS added via setStyle');
+                
+                // Wait a bit more for CSS to be processed
+                await new Promise(resolve => setTimeout(resolve, 300));
+              } catch (cssError) {
+                console.warn('⚠️ Could not add CSS via setStyle, will extract from canvas:', cssError);
+              }
+            }
+            
+            // Get the GrapesJS project data
+            const projectData = tempEditor.getProjectData();
+            
+            // Also get CSS from GrapesJS (it should have parsed it)
+            const grapesJsCss = tempEditor.getCss() || '';
+            console.log('🎨 GrapesJS extracted CSS length:', grapesJsCss.length, 'characters');
+            
+            // Ensure CSS is stored - if GrapesJS didn't capture it all, add it manually
+            if (extractedCss && grapesJsCss.length < extractedCss.length * 0.5) {
+              console.log('⚠️ GrapesJS CSS seems incomplete, adding raw CSS to project data');
+              
+              // Store raw CSS in project data for later injection
+              if (!projectData.css) {
+                projectData.css = '';
+              }
+              projectData.css = extractedCss; // Store raw CSS
+              
+              // Also try to add as a component style
+              if (!projectData.styles) {
+                projectData.styles = [];
+              }
+              
+              // Add CSS as a global style rule
+              const globalStyle = {
+                selectors: ['html', 'body'],
+                style: {},
+                css: extractedCss, // Store full CSS string
+              };
+              
+              // Check if this CSS is already in styles
+              const cssExists = projectData.styles.some((s: any) => 
+                s.css && (s.css === extractedCss || s.css.includes(extractedCss))
+              );
+              
+              if (!cssExists) {
+                projectData.styles.push(globalStyle);
+                console.log('✅ Added CSS as style rule to project data');
+              }
+            }
+            
+            console.log('📦 Final project data styles count:', projectData.styles?.length || 0);
+            
+            // Store as JSON string in Firestore
+            const jsonString = JSON.stringify(projectData);
+            templateData.grapesJsData = jsonString;
+            convertedJsonData = jsonString; // Store for potential copy if Storage fails
+            
+            console.log('✅ HTML converted to GrapesJS JSON');
+            console.log('📦 Project data size:', jsonString.length, 'bytes');
+            console.log('💡 Tip: If Storage upload fails, check console for converted JSON to copy');
+            
+            // Cleanup
+            tempEditor.destroy();
+            if (document.body.contains(tempContainer)) {
+              document.body.removeChild(tempContainer);
+            }
+            
+            setUploadProgress(40);
+            
+          } catch (convertError: any) {
+            console.error('❌ Error converting HTML to GrapesJS JSON:', convertError);
+            // Fallback: store HTML content directly
+            templateData.htmlContent = htmlContent;
+            alert(`Warning: Could not convert HTML to GrapesJS format: ${convertError.message}\n\nThe template will be saved with HTML content instead.`);
+            setUploadProgress(30);
+          }
+          
+        } catch (extractError: any) {
+          console.error('❌ Error extracting HTML from ZIP:', extractError);
+          alert(`Failed to extract HTML from ZIP: ${extractError.message}\n\nThe template will still be uploaded to Storage, but preview might not work.`);
+          // Continue with upload anyway
+        }
+        
+        // Upload ZIP file to Firebase Storage (for backup/download)
         const storageRef = ref(storage, `templates/${templateId}/template.zip`);
         
         const uploadInterval = setInterval(() => {
@@ -970,6 +1156,7 @@ export default function AdminTemplatesPage() {
         
         const downloadURL = await getDownloadURL(storageRef);
         templateData.zipUrl = downloadURL;
+        setUploadProgress(80);
       }
 
       // Upload preview image if provided
@@ -999,6 +1186,53 @@ export default function AdminTemplatesPage() {
 
       setUploadProgress(100);
 
+      // Check if user is admin before saving
+      const currentUser = auth.currentUser;
+      if (!currentUser) {
+        console.error('❌ No current user found!');
+        alert('You must be logged in to upload templates.');
+        setUploading(false);
+        setUploadProgress(0);
+        return;
+      }
+
+      console.log('👤 Current user:', {
+        uid: currentUser.uid,
+        email: currentUser.email,
+        emailVerified: currentUser.emailVerified,
+      });
+      
+      // Force refresh ID token to get latest claims
+      try {
+        const idToken = await currentUser.getIdTokenResult(true); // Force refresh
+        console.log('🔑 ID Token claims:', {
+          email: idToken.claims.email,
+          email_verified: idToken.claims.email_verified,
+          allClaims: Object.keys(idToken.claims),
+        });
+        const claimEmail = typeof idToken.claims.email === 'string' ? idToken.claims.email : '';
+        console.log('📧 Admin email in token:', claimEmail);
+        console.log('📧 Admin email matches:', claimEmail.toLowerCase() === 'tjayburger2004@gmail.com');
+        
+        if (claimEmail.toLowerCase() !== 'tjayburger2004@gmail.com') {
+          console.error('❌ Email mismatch! Token email:', claimEmail, 'Expected: tjayburger2004@gmail.com');
+          alert('Permission denied. Your email does not match the admin list. Please log out and log back in, or check firestore.rules.');
+          setUploading(false);
+          setUploadProgress(0);
+          return;
+        }
+      } catch (tokenError) {
+        console.error('❌ Error getting ID token:', tokenError);
+      }
+
+      console.log('📝 Template data to save:', {
+        name: templateData.name,
+        category: templateData.category,
+        hasZipUrl: !!templateData.zipUrl,
+        hasGrapesJsData: !!templateData.grapesJsData,
+        previewImageUrl: templateData.previewImageUrl || '(none)',
+      });
+
       // Save to Firestore
       const templateDocRef = await addDoc(collection(db, 'templates'), templateData);
       const savedTemplateId = templateDocRef.id;
@@ -1026,9 +1260,32 @@ export default function AdminTemplatesPage() {
         successMessage += ' Preview image uploaded.';
       }
       alert(successMessage);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error uploading template:', error);
-      alert('Failed to upload template. Please try again.');
+      console.error('Error code:', error?.code);
+      console.error('Error message:', error?.message);
+      console.error('Full error:', JSON.stringify(error, null, 2));
+      
+      // If Storage failed but we have converted JSON, offer to copy it
+      if ((error?.code === 'storage/unauthorized' || error?.code === 'permission-denied') && convertedJsonData) {
+        const useJson = confirm('Storage upload failed due to permissions.\n\nWould you like to copy the converted JSON so you can upload it using the "GrapesJS JSON" option instead?\n\nClick OK to copy JSON to clipboard.');
+        if (useJson) {
+          try {
+            await navigator.clipboard.writeText(convertedJsonData);
+            alert('✅ JSON copied to clipboard!\n\nNow:\n1. Select "GrapesJS JSON" format\n2. Paste the JSON into the field\n3. Upload without ZIP file');
+          } catch (clipError) {
+            // Fallback: show in console
+            console.log('📋 Converted JSON (copy this):', convertedJsonData);
+            alert('JSON is available in browser console. Check console (F12) and copy it, then use "GrapesJS JSON" format to upload.');
+          }
+        }
+      } else if (error?.code === 'storage/unauthorized') {
+        alert('Storage permission error. Try uploading as GrapesJS JSON instead:\n\n1. Select "GrapesJS JSON" format\n2. Use the converter tool in Templates/tutor/convert-to-json-standalone.html\n3. Upload without ZIP file');
+      } else if (error?.code === 'permission-denied' || error?.code === 'missing-or-insufficient-permissions') {
+        alert('Permission denied. Please check:\n1. Your email is in firestore.rules adminEmails list\n2. You have tier "admin" in your user document\n3. Firestore rules have been deployed\n\nSee console for details.');
+      } else {
+        alert(`Failed to upload template: ${error?.message || 'Unknown error'}`);
+      }
     } finally {
       setUploading(false);
       setUploadProgress(0);

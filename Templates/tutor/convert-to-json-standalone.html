@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Convert Tutor Template to GrapesJS JSON</title>
+    <script src="https://cdn.jsdelivr.net/npm/grapesjs@0.21.7/dist/grapes.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/grapesjs-preset-webpage@1.0.3/dist/grapesjs-preset-webpage.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/grapesjs@0.21.7/dist/css/grapes.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .instructions {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border-left: 4px solid #2196f3;
+        }
+        button {
+            background: #f59e0b;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #d97706;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        #gjs-container {
+            border: 2px solid #ddd;
+            height: 600px;
+            margin: 20px 0;
+            background: white;
+        }
+        #json-output {
+            width: 100%;
+            height: 400px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background: #f9f9f9;
+            box-sizing: border-box;
+        }
+        .success {
+            background: #4caf50;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .error {
+            background: #f44336;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .info {
+            background: #2196f3;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎓 Tutor Template → GrapesJS JSON Converter</h1>
+        
+        <div class="instructions">
+            <strong>Instructions:</strong>
+            <ol>
+                <li>Click "Convert Template" below</li>
+                <li>Wait for GrapesJS to process the template (this may take 10-20 seconds)</li>
+                <li>The JSON will appear in the textarea below</li>
+                <li>Click "Copy JSON" to copy it to your clipboard</li>
+                <li>Go to Admin Templates page and paste it into the "GrapesJS Project JSON" field</li>
+            </ol>
+        </div>
+
+        <div>
+            <button id="convertBtn" onclick="convertTemplate()">Convert Template</button>
+            <button id="copyBtn" onclick="copyJSON()" disabled>Copy JSON</button>
+        </div>
+
+        <div id="status"></div>
+
+        <div id="gjs-container" style="display: none;"></div>
+
+        <div>
+            <h3>GrapesJS JSON Output:</h3>
+            <textarea id="json-output" readonly placeholder="JSON will appear here after conversion..."></textarea>
+        </div>
+    </div>
+
+    <script>
+        // Embed the tutor template HTML here
+        const templateHTML = `<!-- Template HTML will be inserted here by script -->`;
+
+        let editor = null;
+
+        async function convertTemplate() {
+            const statusDiv = document.getElementById('status');
+            const convertBtn = document.getElementById('convertBtn');
+            const copyBtn = document.getElementById('copyBtn');
+            const container = document.getElementById('gjs-container');
+            
+            convertBtn.disabled = true;
+            statusDiv.innerHTML = '<div class="info">⏳ Loading template and initializing GrapesJS...</div>';
+            
+            try {
+                // Fetch the template HTML file
+                const response = await fetch('./tutor-modern.html');
+                if (!response.ok) {
+                    // If fetch fails, try to use inline template
+                    throw new Error('Could not fetch template file. Using inline template...');
+                }
+                const templateHtml = await response.text();
+                await processTemplate(templateHtml);
+            } catch (error) {
+                // Fallback: try to load from a data URL or use inline
+                statusDiv.innerHTML = '<div class="info">📥 Loading template from file system...</div>';
+                
+                // Try to read the file using FileReader if available
+                // Otherwise, we'll need to manually embed it
+                statusDiv.innerHTML = '<div class="error">❌ Could not load template file automatically. Please open this file from the Templates/tutor folder, or manually copy tutor-modern.html content.</div>';
+                
+                // Show instructions for manual process
+                setTimeout(() => {
+                    alert('To convert manually:\n\n1. Open tutor-modern.html in a browser\n2. Open browser console (F12)\n3. Copy the HTML content\n4. Paste it into the textarea below and click "Convert from HTML"');
+                }, 1000);
+            }
+        }
+
+        async function processTemplate(templateHtml) {
+            const statusDiv = document.getElementById('status');
+            const container = document.getElementById('gjs-container');
+            const convertBtn = document.getElementById('convertBtn');
+            
+            container.style.display = 'block';
+            statusDiv.innerHTML = '<div class="info">🔄 Parsing HTML and extracting content...</div>';
+            
+            try {
+                // Parse HTML
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(templateHtml, 'text/html');
+                const bodyContent = doc.body.innerHTML;
+                
+                // Extract CSS
+                const styleTags = doc.querySelectorAll('style');
+                let css = '';
+                styleTags.forEach(style => {
+                    css += (style.textContent || style.innerHTML || '') + '\n';
+                });
+                
+                statusDiv.innerHTML = '<div class="info">✅ HTML parsed. Initializing GrapesJS editor...</div>';
+                
+                // Wait a bit for DOM
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                // Initialize GrapesJS
+                if (editor) {
+                    editor.destroy();
+                }
+                
+                editor = grapesjs.init({
+                    container: '#gjs-container',
+                    plugins: ['gjs-preset-webpage'],
+                    storageManager: false,
+                    height: '600px',
+                    width: 'auto',
+                    fromElement: false,
+                    panels: { defaults: [] },
+                });
+
+                statusDiv.innerHTML = '<div class="info">⏳ Loading content into GrapesJS (this may take 10-20 seconds)...</div>';
+                
+                // Wait for editor to be ready
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                // Set components and styles
+                editor.setComponents(bodyContent);
+                
+                // Wait for components to be processed
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+                // Set CSS
+                if (css.trim()) {
+                    editor.setStyle(css);
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+                
+                statusDiv.innerHTML = '<div class="info">⏳ Processing styles and generating JSON...</div>';
+                
+                // Wait for CSS to be processed
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+                // Get project data
+                const projectData = editor.getProjectData();
+                
+                // Get CSS from editor
+                const editorCss = editor.getCss();
+                
+                // Ensure CSS is included
+                if (editorCss) {
+                    projectData.css = editorCss;
+                } else if (css) {
+                    projectData.css = css;
+                }
+                
+                // Convert to JSON
+                const jsonString = JSON.stringify(projectData, null, 2);
+                
+                // Display in textarea
+                document.getElementById('json-output').value = jsonString;
+                
+                statusDiv.innerHTML = '<div class="success">✅ Conversion complete! JSON is ready. Click "Copy JSON" to copy it.</div>';
+                document.getElementById('copyBtn').disabled = false;
+                convertBtn.disabled = false;
+                
+            } catch (error) {
+                statusDiv.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+                console.error('Conversion error:', error);
+                convertBtn.disabled = false;
+            }
+        }
+
+        function copyJSON() {
+            const jsonOutput = document.getElementById('json-output');
+            if (!jsonOutput.value) {
+                alert('Please convert the template first!');
+                return;
+            }
+            
+            jsonOutput.select();
+            document.execCommand('copy');
+            
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = '<div class="success">✅ JSON copied to clipboard! Now paste it into the admin template upload form.</div>';
+        }
+
+        // Alternative: Convert from pasted HTML
+        window.convertFromHTML = function() {
+            const htmlInput = prompt('Paste the HTML content from tutor-modern.html:');
+            if (htmlInput) {
+                processTemplate(htmlInput);
+            }
+        };
+    </script>
+</body>
+</html>
+

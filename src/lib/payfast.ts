@@ -151,7 +151,7 @@ function testSignatureCalculation(): void {
 }
 
 // Generate PayFast signature (server-side only)
-function generateSignature(data: Record<string, any>): string {
+export function generateSignature(data: Record<string, any>): string {
   // This function should only be called on the server side
   if (typeof window !== 'undefined') {
     throw new Error('PayFast signature generation should only be done server-side');

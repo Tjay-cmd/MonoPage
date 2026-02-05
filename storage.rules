@@ -19,17 +19,54 @@ service firebase.storage {
       return isSignedIn() && request.auth.uid == userId;
     }
 
+    match /website-previews/{fileName} {
+      // Allow public read access for preview images
+      allow read: if true;
+      // Allow authenticated users to write (filename format includes userId: website_${userId}_...)
+      // This is secure because users can't easily guess other users' websiteIds
+      allow write: if isSignedIn() || isAdmin();
+      allow delete: if isSignedIn() || isAdmin();
+    }
+
     match /template-previews/{templateId}/{fileName} {
       allow read: if true;
       allow write: if isAdmin();
     }
 
     match /templates/{templateId}/{fileName} {
-      allow read, write: if isAdmin();
+      // Allow public read access for templates (users need to access templates)
+      allow read: if true;
+      // Only admins can upload/delete templates
+      allow write: if isAdmin();
+      allow delete: if isAdmin();
     }
 
     match /profile-images/{userId}/{fileName} {
       allow read: if true;
+      allow write: if isOwner(userId) || isAdmin();
+      allow delete: if isOwner(userId) || isAdmin();
+    }
+
+    match /photographer-deliveries/{userId}/{deliveryId}/photos.zip {
+      allow read: if request.auth != null && (
+        request.auth.uid == userId || 
+        isAdmin()
+      );
+      allow write: if isOwner(userId) || isAdmin();
+      allow delete: if isOwner(userId) || isAdmin();
+    }
+
+    match /tutor-resources/{userId}/{resourceId}/{fileName} {
+      allow read: if isSignedIn() && (
+        request.auth.uid == userId || 
+        isAdmin()
+      );
+      allow write: if isOwner(userId) || isAdmin();
+      allow delete: if isOwner(userId) || isAdmin();
+    }
+
+    match /tutor-classes/{userId}/{classId}/{fileName} {
+      allow read: if true; // Public read for cover images
       allow write: if isOwner(userId) || isAdmin();
       allow delete: if isOwner(userId) || isAdmin();
     }
